@@ -36,6 +36,8 @@
 #include <compat/linux/linux.h>
 #include <powerpc/linux/linux_syscall.h>
 
+#define LINUX_LEGACY_SYSCALLS
+
 #define	LINUX_DTRACE	linuxulator
 
 /* Provide a separate set of types for the Linux types */
@@ -81,7 +83,7 @@ typedef struct {
 #define	l_fd_set	fd_set
 
 ///* Miscellaneous */
-#define	LINUX_AT_COUNT		18
+#define	LINUX_AT_COUNT		17
 
 struct l___sysctl_args
 {
@@ -151,6 +153,25 @@ struct l_newstat {
 	l_uint		__unused2;
 };
 
+/* sigaction flags */
+#define	LINUX_SA_NOCLDSTOP	0x00000001
+#define	LINUX_SA_NOCLDWAIT	0x00000002
+#define	LINUX_SA_SIGINFO	0x00000004
+#define	LINUX_SA_RESTORER	0x04000000
+#define	LINUX_SA_ONSTACK	0x08000000
+#define	LINUX_SA_RESTART	0x10000000
+#define	LINUX_SA_INTERRUPT	0x20000000	/* XXX */
+#define	LINUX_SA_NOMASK		0x40000000	/* SA_NODEFER */
+#define	LINUX_SA_ONESHOT	0x80000000	/* SA_RESETHAND */
+
+typedef void	(*l_handler_t)(l_int);
+
+typedef struct {
+	l_handler_t	lsa_handler;
+	l_ulong		lsa_flags;
+	l_uintptr_t	lsa_restorer;
+	l_sigset_t	lsa_mask;
+} l_sigaction_t;				/* XXX */
 
 typedef struct {
 	l_uintptr_t	ss_sp;
@@ -215,6 +236,24 @@ struct linux_robust_list_head {
 
 struct reg;
 struct syscall_info;
+
+struct linux_pt_regset {
+};
+
+
+#ifdef _KERNEL
+struct reg;
+struct syscall_info;
+
+void	bsd_to_linux_regset(const struct reg *b_reg,
+	    struct linux_pt_regset *l_regset);
+void	linux_to_bsd_regset(struct reg *b_reg,
+	    const struct linux_pt_regset *l_regset);
+void	linux_ptrace_get_syscall_info_machdep(const struct reg *reg,
+	    struct syscall_info *si);
+int	linux_ptrace_getregs_machdep(struct thread *td, pid_t pid,
+	    struct linux_pt_regset *l_regset);
+#endif /* _KERNEL */
 
 
 #endif /* _POWERPC_LINUX_H_ */

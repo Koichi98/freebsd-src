@@ -68,7 +68,7 @@ __FBSDID("$FreeBSD$");
 #include <compat/linux/linux_util.h>
 #include <compat/linux/linux_vdso.h>
 
-#include <powerpc/linux/linux_sigframe.h>
+//#include <powerpc/linux/linux_sigframe.h>
 
 #include <machine/md_var.h>
 
@@ -81,6 +81,7 @@ MODULE_VERSION(linux64elf, 1);
 
 extern struct sysent linux_sysent[LINUX_SYS_MAXSYSCALL];
 
+SET_DECLARE(linux_ioctl_handler_set, struct linux_ioctl_handler);
 
 static int	linux_copyout_strings(struct image_params *imgp,
 		    uintptr_t *stack_base);
@@ -93,13 +94,14 @@ static void	linux_exec_setregs(struct thread *td, struct image_params *imgp,
 		    uintptr_t stack);
 
 
+
 static int
 linux_fetch_syscall_args(struct thread *td)
 {
 	struct proc *p;
 	struct syscall_args *sa;
 	struct trapframe *frame;
-	register_t *ap;
+	//register_t *ap;
 
 	p = td->td_proc;
 	frame = td->td_frame;
@@ -132,17 +134,16 @@ static void
 linux_set_syscall_retval(struct thread *td, int error)
 {
 
-	// Copied from cpu_set_syscall_retval():/sys/powerpc/powerpc/exec_machdep.c
-	if (tf->fixreg[0] == SYS___syscall &&
-		(SV_PROC_FLAG(p, SV_ILP32))) {
-		int code = tf->fixreg[FIRSTARG + 1];
-		fixup = (
-#if defined(COMPAT_FREEBSD6) && defined(SYS_freebsd6_lseek)
-		    code != SYS_freebsd6_lseek &&
-#endif
-		    code != SYS_lseek) ?  1 : 0;
-	} else
-		fixup = 0;
+	// Refer from cpu_set_syscall_retval():/sys/powerpc/powerpc/exec_machdep.c
+	struct trapframe *tf;
+	int fixup;
+
+	if (error == EJUSTRETURN)
+		return;
+
+	tf = td->td_frame;
+
+	fixup = 0;
 
 	if (fixup) {
 		/*
@@ -171,7 +172,7 @@ linux_copyout_auxargs(struct image_params *imgp, uintptr_t base)
 	struct proc *p;
 	int error, issetugid;
 
-	LIN_SDT_PROBE0(sysvec, linux_copyout_auxargs, todo);
+	//LIN_SDT_PROBE0(sysvec, linux_copyout_auxargs, todo);
 	p = imgp->proc;
 
 	args = (Elf64_Auxargs *)imgp->auxargs;
@@ -181,8 +182,7 @@ linux_copyout_auxargs(struct image_params *imgp, uintptr_t base)
 	issetugid = p->p_flag & P_SUGID ? 1 : 0;
 	// TODO
 	//AUXARGS_ENTRY(pos, LINUX_AT_SYSINFO_EHDR, linux_vdso_base);
-	AUXARGS_ENTRY(pos, LINUX_AT_MINSIGSTKSZ, LINUX_MINSIGSTKSZ);
-	// TODO
+	//AUXARGS_ENTRY(pos, LINUX_AT_MINSIGSTKSZ, LINUX_MINSIGSTKSZ);
 	//AUXARGS_ENTRY(pos, LINUX_AT_HWCAP, *imgp->sysent->sv_hwcap);
 	AUXARGS_ENTRY(pos, AT_PAGESZ, args->pagesz);
 	AUXARGS_ENTRY(pos, LINUX_AT_CLKTCK, stclohz);
@@ -217,6 +217,19 @@ linux_copyout_auxargs(struct image_params *imgp, uintptr_t base)
 	return (error);
 }
 
+static int
+linux_fixup_elf(uintptr_t *stack_base, struct image_params *imgp)
+{
+	Elf_Addr *base;
+
+	base = (Elf64_Addr *)*stack_base;
+	base--;
+	if (suword(base, (uint64_t)imgp->args->argc) == -1)
+		return (EFAULT);
+
+	*stack_base = (uintptr_t)base;
+	return (0);
+}
 
 /*
  * Copy strings out to the new process address space, constructing new arg
@@ -227,7 +240,7 @@ linux_copyout_auxargs(struct image_params *imgp, uintptr_t base)
 static int
 linux_copyout_strings(struct image_params *imgp, uintptr_t *stack_base)
 {
-	char **vectp;　
+	char **vectp;
 	char *stringp;
 	uintptr_t destp, ustringp;
 	struct ps_strings *arginfo;
@@ -394,16 +407,24 @@ linux_exec_setregs(struct thread *td, struct image_params *imgp,
 	tf->fixreg[12] = imgp->entry_addr;
 	#endif
 	tf->srr1 = psl_userset | PSL_FE_DFLT;
-	cleanup_power_extras(td);
+	// TODO
+	//cleanup_power_extras(td);
 	td->td_pcb->pcb_flags = 0;
 
 
 }
 
+int
+linux_rt_sigreturn(struct thread *td, struct linux_rt_sigreturn_args *args)
+{
+	return 0;
+}
+
 struct sysentvec elf_linux_sysvec = {
 	.sv_size	= LINUX_SYS_MAXSYSCALL,
 	.sv_table	= linux_sysent,
-	.sv_fixup	= linux_elf_fixup,
+//	.sv_fixup	= linux_elf_fixup,
+	.sv_fixup	= __elfN(freebsd_fixup),
 	.sv_sendsig	= NULL,
 	.sv_sigcode	= NULL,
 	.sv_szsigcode	= NULL,
@@ -413,11 +434,11 @@ struct sysentvec elf_linux_sysvec = {
 	.sv_elf_core_abi_vendor = LINUX_ABI_VENDOR,
 	.sv_elf_core_prepare_notes = linux64_prepare_notes,
 	.sv_imgact_try	= linux_exec_imgact_try,
-	.sv_minsigstksz	= NULL,
+	//.sv_minsigstksz	= NULL,
 	.sv_minuser	= VM_MIN_ADDRESS,
 	.sv_maxuser	= VM_MAXUSER_ADDRESS,
-	.sv_usrstack	= NULL,
-	.sv_psstrings	= NULL,
+	//.sv_usrstack	= NULL,
+	//.sv_psstrings	= NULL,
 	.sv_psstringssz	= sizeof(struct ps_strings),
 	.sv_stackprot	= VM_PROT_READ | VM_PROT_WRITE,
 	.sv_copyout_auxargs = linux_copyout_auxargs,
@@ -430,7 +451,7 @@ struct sysentvec elf_linux_sysvec = {
 	.sv_set_syscall_retval = linux_set_syscall_retval,
 	.sv_fetch_syscall_args = linux_fetch_syscall_args,
 	.sv_syscallnames = NULL,
-	.sv_shared_page_base = NULL,
+	//.sv_shared_page_base = NULL,
 	.sv_shared_page_len = PAGE_SIZE,
 	.sv_schedtail	= linux_schedtail,
 	.sv_thread_detach = linux_thread_detach,

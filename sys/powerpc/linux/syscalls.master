@@ -79,7 +79,11 @@
 		    char *path
 		);
 	}
-13	AUE_NULL	UNIMPL	linux_time
+13 AUE_NULL	STD {
+		int linux_time(
+		    l_time_t *tm
+		);
+	}
 14	AUE_MKNOD	STD {
 		int linux_mknod(
 		    char *path,
@@ -292,14 +296,7 @@
 66	AUE_SETSID	NOPROTO {
 		int setsid(void);
 	}
-67	AUE_NULL	STD {
-		int linux_rt_sigaction(
-		    l_int sig,
-		    l_sigaction_t *act,
-		    l_sigaction_t *oact,
-		    l_size_t sigsetsize
-		);
-	}
+67	AUE_NULL	UNIMPL	linux_sigaction
 68	AUE_NULL	UNIMPL	linux_sgetmask
 69	AUE_NULL	UNIMPL	linux_ssetmask
 70	AUE_SETREUID	NOPROTO {
@@ -314,18 +311,8 @@
 		    gid_t egid
 		);
 	}
-72	AUE_NULL	STD {
-		int linux_rt_sigsuspend(
-		    l_sigset_t *newset,
-		    l_size_t sigsetsize
-		);
-	}
-73	AUE_NULL	STD {
-		int linux_rt_sigpending(
-		    l_sigset_t *set,
-		    l_size_t sigsetsize
-		);
-	}
+72	AUE_NULL	UNIMPL	linux_sigsuspend
+73	AUE_NULL	UNIMPL	linux_sigpending
 74	AUE_SYSCTL	STD {
 		int linux_sethostname(
 		    char *hostname,
@@ -494,9 +481,24 @@
 		    struct l_itimerval *itv
 		);
 	}
-106	AUE_NULL	UNIMPL	linux_stat
-107	AUE_NULL	UNIMPL	linux_lstat
-108	AUE_NULL	UNIMPL	linux_fstat
+106	AUE_STAT	STD {
+		int linux_newstat(
+		    char *path,
+		    struct l_newstat *buf
+		);
+	}
+107	AUE_LSTAT	STD {
+		int linux_newlstat(
+		    char *path,
+		    struct l_newstat *buf
+		);
+	}
+108	AUE_FSTAT	STD {
+		int linux_newfstat(
+		    l_uint fd,
+		    struct l_newstat *buf
+		);
+	}
 109	AUE_NULL	UNIMPL	linux_olduname
 110	AUE_NULL	STD {
 		int linux_iopl(
@@ -546,7 +548,11 @@
 		    l_int len
 		);
 	}
-122	AUE_NULL	UNIMPL	linux_uname
+122	AUE_NULL	STD {
+		int linux_newuname(
+		    struct l_new_utsname *buf
+		);
+	}
 123	AUE_NULL	STD {
 		int linux_modify_ldt(void);
 	}
@@ -583,13 +589,7 @@
 		);
 	}
 134	AUE_NULL	UNIMPL	linux_bdflush
-135	AUE_NULL	STD {
-		int linux_sysfs(
-		    l_int option,
-		    l_ulong arg1,
-		    l_ulong arg2
-		);
-	}
+135	AUE_NULL	UNIMPL	linux_sysfs
 136	AUE_PERSONALITY	STD {
 		int linux_personality(
 		    l_uint per
@@ -652,7 +652,11 @@
 		    l_uint fd
 		);
 	}
-149	AUE_NULL	UNIMPL	linux__sysctl
+149	AUE_SYSCTL	STD {
+		int linux_sysctl(
+		    struct l___sysctl_args *args
+		);
+	}
 150	AUE_MLOCK	NOPROTO {
 		int mlock(
 		    const void *addr,
@@ -825,8 +829,22 @@
 		    l_size_t sigsetsize
 		);
 	}
-179	AUE_NULL	UNIMPL	linux_pread64
-180	AUE_NULL	UNIMPL	linux_pwrite64
+179	AUE_PREAD	STD {
+		int linux_pread(
+		    l_uint fd,
+		    char *buf,
+		    l_size_t nbyte,
+		    l_loff_t offset
+		);
+	}
+180	AUE_PWRITE	STD {
+		int linux_pwrite(
+		    l_uint fd,
+		    char *buf,
+		    l_size_t nbyte,
+		    l_loff_t offset
+		);
+	}
 181	AUE_LCHOWN	STD {
 		int linux_chown(
 		    char *path,
@@ -872,9 +890,7 @@
 		int linux_vfork(void);
 	}
 190	AUE_NULL	UNIMPL	linux_ugetrlimit
-191	AUE_NULL	STD {
-		int linux_readahead(void);
-	}
+191	AUE_NULL	UNIMPL	linux_readahead
 192	AUE_MMAP	STD {
 		int linux_mmap2(
 		    l_ulong addr,
@@ -1018,7 +1034,16 @@
 		    const char *name
 		);
 	}
-221	AUE_NULL	UNIMPL	linux_futex
+221	AUE_NULL	STD	{
+		int linux_sys_futex(
+		    uint32_t *uaddr,
+		    l_int op,
+		    uint32_t val,
+		    struct l_timespec *timeout,
+		    uint32_t *uaddr2,
+		    uint32_t val3
+		);
+	}
 222	AUE_NULL	STD {
 		int linux_sched_setaffinity(
 		    l_pid_t pid,
@@ -1033,23 +1058,14 @@
 		    l_ulong *user_mask_ptr
 		);
 	}
+224	AUE_NULL	UNIMPL	
 225	AUE_NULL	UNIMPL	linux_tuxcall
 226	AUE_NULL	UNIMPL	linux_sendfile64
-227	AUE_NULL	STD {
-		int linux_io_setup(void);
-	}
-228	AUE_NULL	STD {
-		int linux_io_destroy(void);
-	}
-229	AUE_NULL	STD {
-		int linux_io_getevents(void);
-	}
-230	AUE_NULL	STD {
-		int linux_io_submit(void);
-	}
-231	AUE_NULL	STD {
-		int linux_io_cancel(void);
-	}
+227	AUE_NULL	UNIMPL	linux_io_setup
+228	AUE_NULL	UNIMPL	linux_io_destroy
+229	AUE_NULL	UNIMPL	linux_io_getevents
+230	AUE_NULL	UNIMPL	linux_io_submit
+231	AUE_NULL	UNIMPL	linux_io_cancel
 232	AUE_NULL	STD {
 		int linux_set_tid_address(
 		    l_int *tidptr
@@ -1171,6 +1187,7 @@
 254	AUE_NULL	UNIMPL	linux_fadvise64_64
 255	AUE_NULL	UNIMPL	linux_rtas
 256	AUE_NULL	UNIMPL	linux_sys_debug_setcontext
+257	AUE_NULL	UNIMPL
 258	AUE_NULL	STD {
 		int linux_migrate_pages(void);
 	}
@@ -1254,9 +1271,7 @@
 274	AUE_NULL	STD {
 		int linux_ioprio_get(void);
 	}
-275	AUE_NULL	STD {
-		int linux_inotify_init(void);
-	}
+275	AUE_NULL	UNIMPL	linux_inotify_init
 276	AUE_NULL	STD {
 		int linux_inotify_add_watch(void);
 	}
@@ -1444,9 +1459,7 @@
 		    l_int flags
 		);
 	}
-305	AUE_NULL	STD {
-		int linux_signalfd(void);
-	}
+305	AUE_NULL	UNIMPL	linux_signalfd
 306	AUE_NULL	STD {
 		int linux_timerfd_create(
 		    l_int clockid,
@@ -1458,7 +1471,14 @@
 		    l_uint initval
 		);
 	}
-308	AUE_NULL	UNIMPL	linux_sync_file_range2
+308	AUE_NULL	STD {
+		int linux_sync_file_range(
+		    l_int fd,
+		    l_loff_t offset,
+		    l_loff_t nbytes,
+		    l_uint flags
+		);
+	}
 309	AUE_NULL	STD {
 		int linux_fallocate(
 		    l_int fd,
@@ -1836,6 +1856,18 @@
 		    l_int flags
 		);
 	}
+366	AUE_NULL	UNIMPL	
+367	AUE_NULL	UNIMPL	
+368	AUE_NULL	UNIMPL	
+369	AUE_NULL	UNIMPL	
+370	AUE_NULL	UNIMPL	
+371	AUE_NULL	UNIMPL	
+372	AUE_NULL	UNIMPL	
+373	AUE_NULL	UNIMPL	
+374	AUE_NULL	UNIMPL	
+375	AUE_NULL	UNIMPL	
+376	AUE_NULL	UNIMPL	
+377	AUE_NULL	UNIMPL	
 378	AUE_NULL	STD {
 		int linux_mlock2(
 		    l_ulong start,
@@ -1853,7 +1885,7 @@
 		    l_uint flags
 		);
 	}
-380	AUE_NULL	STD {
+380 AUE_NULL	STD {
 		int linux_preadv2(
 		    l_ulong fd,
 		    const struct iovec *vec,
@@ -1873,15 +1905,7 @@
 		    l_int flags
 		);
 	}
-382	AUE_NULL	STD {
-		int linux_kexec_file_load(
-		    l_int kernel_fd,
-		    l_int initrd_fd,
-		    l_ulong cmdline_len,
-		    const char *cmdline_ptr,
-		    l_ulong flags
-		);
-	}
+382	AUE_NULL	UNIMPL	linux_kexec_file_load
 383	AUE_NULL	STD {
 		int linux_statx(
 		    l_int dirfd,
@@ -1921,6 +1945,9 @@
 388	AUE_NULL	STD {
 		int linux_io_pgetevents(void);
 	}
+389	AUE_NULL	UNIMPL	
+390	AUE_NULL	UNIMPL	
+391	AUE_NULL	UNIMPL	
 392	AUE_NULL	STD {
 		int linux_semtimedop(
 		    l_int semid,
@@ -2012,6 +2039,7 @@
 412	AUE_NULL	UNIMPL	linux_utimensat_time64
 413	AUE_NULL	UNIMPL	linux_pselect6_time64
 414	AUE_NULL	UNIMPL	linux_ppoll_time64
+415 AUE_NULL	UNIMPL	
 416	AUE_NULL	UNIMPL	linux_io_pgetevents_time64
 417	AUE_NULL	UNIMPL	linux_recvmmsg_time64
 418	AUE_NULL	UNIMPL	linux_mq_timedsend_time64
@@ -2101,6 +2129,7 @@
 444	AUE_NULL	UNIMPL	linux_landlock_create_ruleset
 445	AUE_NULL	UNIMPL	linux_landlock_add_rule
 446	AUE_NULL	UNIMPL	linux_landlock_restrict_self
+447	AUE_NULL	UNIMPL	
 448	AUE_NULL	UNIMPL	linux_process_mrelease
 449	AUE_NULL	UNIMPL	linux_futex_waitv
 450	AUE_NULL	UNIMPL	linux_set_mempolicy_home_node
