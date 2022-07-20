@@ -1,7 +1,9 @@
+
 /*-
  * SPDX-License-Identifier: BSD-2-Clause-FreeBSD
  *
- * Copyright (c) 2013 Dmitry Chagin <dchagin@FreeBSD.org>
+ * Copyright (C) 2018 Turing Robotic Industries Inc.
+ * Copyright (C) 2022 Dmitry Chagin <dchagin@FreeBSD.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -23,40 +25,37 @@
  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
+ *
+ * $FreeBSD$
  */
 
-#include <sys/cdefs.h>
+#include <machine/asm.h>
 __FBSDID("$FreeBSD$");
 
-#include "opt_compat.h"
+#include <machine/param.h>
+#include <machine/vmparam.h>
 
-#include <sys/param.h>
-#include <sys/kernel.h>
-#include <sys/sdt.h>
-#include <sys/systm.h>
-#include <sys/proc.h>
+#include <sys/errno.h>
 
-#include <powerpc/linux/linux.h>
-#include <powerpc/linux/linux_proto.h>
-//#include <powerpc/linux/linux_dtrace.h>
-//#include <powerpc/linux/linux_util.h>
+#include "assym.inc"
 
-/* DTrace init */
-//LIN_SDT_PROVIDER_DECLARE(LINUX_DTRACE);
+#define	LINUX_FUTEX_MAX_LOOPS	128
 
-/*
- * Before adding new stubs to this file, please check if a stub can be added to
- * the machine-independent code in sys/compat/linux/linux_dummy.c.
- */
+ENTRY(futex_xchgl)
+END(futex_xchgl)
 
-//UNIMPLEMENTED(get_thread_area);
-//UNIMPLEMENTED(set_thread_area);
-//UNIMPLEMENTED(uselib);
+/* (int *)uaddr2 += oparg */
+ENTRY(futex_addl)
+END(futex_addl)
 
-//DUMMY(mq_open);
-//DUMMY(mq_unlink);
-//DUMMY(mq_timedsend);
-//DUMMY(mq_timedreceive);
-//DUMMY(mq_notify);
-//DUMMY(mq_getsetattr);
-//DUMMY(kexec_file_load);
+/* (int *)uaddr2 |= oparg */
+ENTRY(futex_orl)
+END(futex_orl)
+
+/* (int *)uaddr2 &= oparg */
+ENTRY(futex_andl)
+END(futex_andl)
+
+/* (int *)uaddr2 ^= oparg */
+ENTRY(futex_xorl)
+END(futex_xorl)
