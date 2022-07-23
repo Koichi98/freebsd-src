@@ -2862,7 +2862,7 @@ linux_getcpu(struct thread *td, struct linux_getcpu_args *args)
 	return (error);
 }
 
-#if defined(__i386__) || defined(__amd64__)
+#if defined(__i386__) || defined(__amd64__) || defined(__powerpc64__)
 int
 linux_poll(struct thread *td, struct linux_poll_args *args)
 {
