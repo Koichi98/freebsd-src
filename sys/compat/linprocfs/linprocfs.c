@@ -1,7 +1,5 @@
 /*-
- * SPDX-License-Identifier: BSD-4-Clause
- *
- * Copyright (c) 2000 Dag-Erling Coïdan Smørgrav
+ * SPDX-License-Identifier: BSD-4-Clause * * Copyright (c) 2000 Dag-Erling Coïdan Smørgrav
  * Copyright (c) 1999 Pierre Beyssac
  * Copyright (c) 1993 Jan-Simon Pendry
  * Copyright (c) 1993
@@ -2209,7 +2207,7 @@ linprocfs_uninit(PFS_INIT_ARGS)
 }
 
 PSEUDOFS(linprocfs, 1, VFCF_JAIL);
-#if defined(__aarch64__) || defined(__amd64__)
+#if defined(__aarch64__) || defined(__amd64__) || defined(__powerpc64__)
 MODULE_DEPEND(linprocfs, linux_common, 1, 1, 1);
 #else
 MODULE_DEPEND(linprocfs, linux, 1, 1, 1);
