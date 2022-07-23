@@ -98,6 +98,8 @@ static void	linux_exec_setregs(struct thread *td, struct image_params *imgp,
 static int
 linux_fetch_syscall_args(struct thread *td)
 {
+	uprintf(__func__);
+	uprintf("\n");
 	struct proc *p;
 	struct syscall_args *sa;
 	struct trapframe *frame;
@@ -134,6 +136,8 @@ static void
 linux_set_syscall_retval(struct thread *td, int error)
 {
 
+	uprintf(__func__);
+	uprintf("\n");
 	// Refer from cpu_set_syscall_retval():/sys/powerpc/powerpc/exec_machdep.c
 	struct trapframe *tf;
 	int fixup;
@@ -167,6 +171,8 @@ linux_set_syscall_retval(struct thread *td, int error)
 static int
 linux_copyout_auxargs(struct image_params *imgp, uintptr_t base)
 {
+	uprintf(__func__);
+	uprintf("\n");
 	Elf_Auxargs *args;
 	Elf_Auxinfo *argarray, *pos;
 	struct proc *p;
@@ -240,6 +246,8 @@ linux_fixup_elf(uintptr_t *stack_base, struct image_params *imgp)
 static int
 linux_copyout_strings(struct image_params *imgp, uintptr_t *stack_base)
 {
+	uprintf(__func__);
+	uprintf("\n");
 	char **vectp;
 	char *stringp;
 	uintptr_t destp, ustringp;
@@ -369,6 +377,8 @@ static void
 linux_exec_setregs(struct thread *td, struct image_params *imgp,
     uintptr_t stack)
 {
+	uprintf(__func__);
+	uprintf("\n");
 	struct trapframe	*tf;
 	register_t		argc;
 
@@ -471,6 +481,8 @@ static int GNU_ABI_LINUX = 0;
 static bool
 linux_trans_osrel(const Elf_Note *note, int32_t *osrel)
 {
+	uprintf(__func__);
+	uprintf("\n");
 	const Elf32_Word *desc;
 	uintptr_t p;
 
@@ -520,6 +532,8 @@ Elf64_Brandinfo *linux_brandlist[] = {
 static int
 linux64_elf_modevent(module_t mod, int type, void *data)
 {
+	uprintf(__func__);
+	uprintf("\n");
 	Elf64_Brandinfo **brandinfo;
 	struct linux_ioctl_handler**lihp;
 	int error;
