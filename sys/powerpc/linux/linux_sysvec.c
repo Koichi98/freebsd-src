@@ -69,7 +69,6 @@ __FBSDID("$FreeBSD$");
 #include <compat/linux/linux_vdso.h>
 
 //#include <powerpc/linux/linux_sigframe.h>
-
 #include <machine/md_var.h>
 
 #ifdef VFP
@@ -78,6 +77,17 @@ __FBSDID("$FreeBSD$");
 
 MODULE_VERSION(linux64elf, 1);
 
+#define	LINUX_VDSOPAGE_SIZE	PAGE_SIZE * 2
+#define	LINUX_VDSOPAGE (VM_MAXUSER_ADDRESS - \
+				    LINUX_VDSOPAGE_SIZE)
+#define	LINUX_SHAREDPAGE	(LINUX_VDSOPAGE - PAGE_SIZE)
+				/*
+				 * PAGE_SIZE - the size
+				 * of the native SHAREDPAGE
+				 */
+#define	LINUX_USRSTACK LINUX_SHAREDPAGE
+#define	LINUX_PS_STRINGS	(LINUX_USRSTACK - \
+				    sizeof(struct ps_strings))
 
 extern struct sysent linux_sysent[LINUX_SYS_MAXSYSCALL];
 
@@ -224,7 +234,7 @@ linux_copyout_auxargs(struct image_params *imgp, uintptr_t base)
 }
 
 static int
-linux_fixup_elf(uintptr_t *stack_base, struct image_params *imgp)
+linux_elf_fixup(uintptr_t *stack_base, struct image_params *imgp)
 {
 	Elf_Addr *base;
 
@@ -444,11 +454,11 @@ struct sysentvec elf_linux_sysvec = {
 	.sv_elf_core_abi_vendor = LINUX_ABI_VENDOR,
 	.sv_elf_core_prepare_notes = linux64_prepare_notes,
 	.sv_imgact_try	= linux_exec_imgact_try,
-	//.sv_minsigstksz	= NULL,
+	.sv_minsigstksz	= LINUX_MINSIGSTKSZ,
 	.sv_minuser	= VM_MIN_ADDRESS,
 	.sv_maxuser	= VM_MAXUSER_ADDRESS,
-	//.sv_usrstack	= NULL,
-	//.sv_psstrings	= NULL,
+	.sv_usrstack	= LINUX_USRSTACK,
+	.sv_psstrings	= LINUX_PS_STRINGS,
 	.sv_psstringssz	= sizeof(struct ps_strings),
 	.sv_stackprot	= VM_PROT_READ | VM_PROT_WRITE,
 	.sv_copyout_auxargs = linux_copyout_auxargs,
@@ -461,7 +471,7 @@ struct sysentvec elf_linux_sysvec = {
 	.sv_set_syscall_retval = linux_set_syscall_retval,
 	.sv_fetch_syscall_args = linux_fetch_syscall_args,
 	.sv_syscallnames = NULL,
-	//.sv_shared_page_base = NULL,
+	.sv_shared_page_base = LINUX_SHAAREDPAGE,
 	.sv_shared_page_len = PAGE_SIZE,
 	.sv_schedtail	= linux_schedtail,
 	.sv_thread_detach = linux_thread_detach,
