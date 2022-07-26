@@ -164,6 +164,9 @@ struct l_newstat {
 #define	LINUX_SA_NOMASK		0x40000000	/* SA_NODEFER */
 #define	LINUX_SA_ONESHOT	0x80000000	/* SA_RESETHAND */
 
+/* sigaltstack */
+#define	LINUX_MINSIGSTKSZ	2048
+
 typedef void	(*l_handler_t)(l_int);
 
 typedef struct {
