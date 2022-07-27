@@ -1,4 +1,3 @@
-
 /*-
  * SPDX-License-Identifier: BSD-2-Clause-FreeBSD
  *
@@ -39,23 +38,36 @@ __FBSDID("$FreeBSD$");
 
 #include "assym.inc"
 
-#define	LINUX_FUTEX_MAX_LOOPS	128
-
 ENTRY(futex_xchgl)
+	li %r3, ENOTSUP
+	blr
+	nop
 END(futex_xchgl)
 
 /* (int *)uaddr2 += oparg */
 ENTRY(futex_addl)
+	li %r3, ENOTSUP
+	blr
+	nop
 END(futex_addl)
 
 /* (int *)uaddr2 |= oparg */
 ENTRY(futex_orl)
+	li %r3, ENOTSUP
+	blr
+	nop
 END(futex_orl)
 
 /* (int *)uaddr2 &= oparg */
 ENTRY(futex_andl)
+	li %r3, ENOTSUP
+	blr
+	nop
 END(futex_andl)
 
 /* (int *)uaddr2 ^= oparg */
 ENTRY(futex_xorl)
+	li %r3, ENOTSUP
+	blr
+	nop
 END(futex_xorl)
