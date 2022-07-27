@@ -478,11 +478,19 @@ struct sysentvec elf_linux_sysvec = {
 	.sv_trap	= NULL,
 	.sv_hwcap	= NULL,
 	.sv_hwcap2	= NULL,
-	.sv_onexec	= NULL,
+	.sv_onexec	= linux_on_exec_vmspace,
 	.sv_onexit	= linux_on_exit,
 	.sv_ontdexit	= linux_thread_dtor,
 	.sv_setid_allowed = &linux_setid_allowed_query,
 };
+
+static int
+linux_on_exec_vmspace(struct proc *p, struct image_params *imgp)
+{
+
+	linux_on_exec(p, imgp);
+	return (0);
+}
 
 static char GNU_ABI_VENDOR[] = "GNU";
 static int GNU_ABI_LINUX = 0;
