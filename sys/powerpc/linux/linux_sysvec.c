@@ -102,7 +102,8 @@ static void	linux_set_syscall_retval(struct thread *td, int error);
 static int	linux_fetch_syscall_args(struct thread *td);
 static void	linux_exec_setregs(struct thread *td, struct image_params *imgp,
 		    uintptr_t stack);
-
+static int	linux_on_exec_vmspace(struct proc *p,
+		    struct image_params *imgp);
 
 
 static int
