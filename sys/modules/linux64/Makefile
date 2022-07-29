@@ -15,8 +15,7 @@ SRCS=	linux_elf64.c linux_dummy_machdep.c linux_fork.c linux_file.c \
 	linux_sysvec.c  linux_time.c linux_vdso.c linux_timer.c linux_rseq.c\
 	opt_compat.h opt_inet6.h opt_posix.h opt_usb.h \
 	vnode_if.h device_if.h bus_if.h \
-	linux_dummy_futex.c
-	#linux_support.s
+	linux_support.s
 .if ${MACHINE_CPUARCH} == "amd64"
 SRCS+=	linux_dummy_x86.c
 .endif
@@ -30,8 +29,8 @@ CLEANFILES=	linux_assym.h linux_genassym.o linux_locore.o \
 
 #OBJS=	${VDSO}.so
 
-#linux_assym.h: linux_genassym.o
-	#sh ${SYSDIR}/kern/genassym.sh linux_genassym.o > ${.TARGET}
+linux_assym.h: linux_genassym.o
+	sh ${SYSDIR}/kern/genassym.sh linux_genassym.o > ${.TARGET}
 
 #linux_locore.o: linux_locore.asm linux_assym.h
 	#${CC} ${CCLDFLAGS} -x assembler-with-cpp -DLOCORE -shared -mcmodel=small	\
@@ -54,12 +53,12 @@ OBJCOPY_TARGET=--output-target elf64-powerpc
 	    #linux_locore.o ${.TARGET}
 	#${STRIPBIN} -N _binary_linux_locore_o_size ${.TARGET}
 
-#linux_support.o: assym.inc linux_assym.h
-	#${CC} -c -x assembler-with-cpp -DLOCORE ${CFLAGS} \
-	    #${.IMPSRC} -o ${.TARGET}
+linux_support.o: assym.inc linux_assym.h
+	${CC} -c -x assembler-with-cpp -DLOCORE ${CFLAGS} \
+	    ${.IMPSRC} -o ${.TARGET}
 
-#linux_genassym.o: offset.inc
-	#${CC} -c ${CFLAGS:N-flto:N-fno-common} -fcommon ${.IMPSRC}
+linux_genassym.o: offset.inc
+	${CC} -c ${CFLAGS:N-flto:N-fno-common} -fcommon ${.IMPSRC}
 
 .if !defined(KERNBUILDDIR)
 .warning Building Linuxulator outside of a kernel does not make sense
