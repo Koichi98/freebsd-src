@@ -310,7 +310,7 @@ linux_copyout_strings(struct image_params *imgp, uintptr_t *stack_base)
 	 * Allocate room for argc and the argv[] and env vectors including the
 	 * terminating NULL pointers.
 	 */
-	vectp -= 1 + imgp->args->argc + 1 + imgp->args->envc + 1;
+	vectp -= imgp->args->argc + 1 + imgp->args->envc + 1;
 
 	/*  NOT SURE WITH THIS
 	 * Starting with 2.24, glibc depends on a 16-byte stack alignment.
