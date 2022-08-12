@@ -165,7 +165,7 @@ extern int stclohz;
 #define	LINUX_OOM_SCORE_ADJ_MIN	-1000
 #define	LINUX_OOM_SCORE_ADJ_MAX	1000
 
-#if defined(__aarch64__) || (defined(__amd64__) && !defined(COMPAT_LINUX32))
+#if defined(__powerpc64__) || defined(__aarch64__) || (defined(__amd64__) && !defined(COMPAT_LINUX32))
 int linux_ptrace_status(struct thread *td, int pid, int status);
 #endif
 void linux_to_bsd_waitopts(int options, int *bsdopts);

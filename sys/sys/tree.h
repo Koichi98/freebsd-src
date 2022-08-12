@@ -380,7 +380,6 @@ struct {								\
 } while (/*CONSTCOND*/ 0)
 
 #define RB_ROTATE_LEFT(head, elm, tmp, field) do {			\
-	(tmp) = RB_RIGHT(elm, field);					\
 	if ((RB_RIGHT(elm, field) = RB_LEFT(tmp, field)) != NULL) {	\
 		RB_SET_PARENT(RB_RIGHT(elm, field), elm, field);	\
 	}								\
@@ -392,7 +391,6 @@ struct {								\
 } while (/*CONSTCOND*/ 0)
 
 #define RB_ROTATE_RIGHT(head, elm, tmp, field) do {			\
-	(tmp) = RB_LEFT(elm, field);					\
 	if ((RB_LEFT(elm, field) = RB_RIGHT(tmp, field)) != NULL) {	\
 		RB_SET_PARENT(RB_LEFT(elm, field), elm, field);		\
 	}								\
@@ -464,6 +462,17 @@ struct {								\
 attr void								\
 name##_RB_INSERT_COLOR(struct name *head, struct type *elm)		\
 {									\
+	/*								\
+	 * Initially, elm is a leaf.  Either its parent was previously	\
+	 * a leaf, with two black null children, or an interior node	\
+	 * with a black non-null child and a red null child. The        \
+	 * balance criterion "the rank of any leaf is 1" precludes the  \
+	 * possibility of two red null children for the initial parent. \
+	 * So the first loop iteration cannot lead to accessing an      \
+	 * uninitialized 'child', and a later iteration can only happen \
+	 * when a value has been assigned to 'child' in the previous    \
+	 * one.								\
+	 */								\
 	struct type *child, *parent;					\
 	while ((parent = RB_PARENT(elm, field)) != NULL) {		\
 		if (RB_LEFT(parent, field) == elm) {			\
@@ -473,11 +482,13 @@ name##_RB_INSERT_COLOR(struct name *head, struct type *elm)		\
 			}						\
 			RB_FLIP_RIGHT(parent, field);			\
 			if (RB_RED_RIGHT(parent, field)) {		\
+				child = elm;				\
 				elm = parent;				\
 				continue;				\
 			}						\
 			if (!RB_RED_RIGHT(elm, field)) {		\
 				RB_FLIP_LEFT(elm, field);		\
+				/* coverity[uninit_use] */		\
 				RB_ROTATE_LEFT(head, elm, child, field);\
 				if (RB_RED_LEFT(child, field))		\
 					RB_FLIP_RIGHT(elm, field);	\
@@ -493,11 +504,13 @@ name##_RB_INSERT_COLOR(struct name *head, struct type *elm)		\
 			}						\
 			RB_FLIP_LEFT(parent, field);			\
 			if (RB_RED_LEFT(parent, field)) {		\
+				child = elm;				\
 				elm = parent;				\
 				continue;				\
 			}						\
 			if (!RB_RED_LEFT(elm, field)) {			\
 				RB_FLIP_RIGHT(elm, field);		\
+				/* coverity[uninit_use] */		\
 				RB_ROTATE_RIGHT(head, elm, child, field);\
 				if (RB_RED_RIGHT(child, field))		\
 					RB_FLIP_LEFT(elm, field);	\
@@ -548,6 +561,7 @@ name##_RB_REMOVE_COLOR(struct name *head,				\
 				RB_FLIP_LEFT(parent, field);		\
 			else if (!RB_RED_RIGHT(sib, field)) {		\
 				RB_FLIP_LEFT(parent, field);		\
+				elm = RB_LEFT(sib, field);		\
 				RB_ROTATE_RIGHT(head, sib, elm, field);	\
 				if (RB_RED_RIGHT(elm, field))		\
 					RB_FLIP_LEFT(sib, field);	\
@@ -578,6 +592,7 @@ name##_RB_REMOVE_COLOR(struct name *head,				\
 				RB_FLIP_RIGHT(parent, field);		\
 			else if (!RB_RED_LEFT(sib, field)) {		\
 				RB_FLIP_RIGHT(parent, field);		\
+				elm = RB_RIGHT(sib, field);		\
 				RB_ROTATE_LEFT(head, sib, elm, field);	\
 				if (RB_RED_LEFT(elm, field))		\
 					RB_FLIP_RIGHT(sib, field);	\
@@ -719,15 +734,10 @@ name##_RB_NEXT(struct type *elm)					\
 		while (RB_LEFT(elm, field))				\
 			elm = RB_LEFT(elm, field);			\
 	} else {							\
-		if (RB_PARENT(elm, field) &&				\
-		    (elm == RB_LEFT(RB_PARENT(elm, field), field)))	\
+		while (RB_PARENT(elm, field) &&				\
+		    (elm == RB_RIGHT(RB_PARENT(elm, field), field)))	\
 			elm = RB_PARENT(elm, field);			\
-		else {							\
-			while (RB_PARENT(elm, field) &&			\
-			    (elm == RB_RIGHT(RB_PARENT(elm, field), field)))\
-				elm = RB_PARENT(elm, field);		\
-			elm = RB_PARENT(elm, field);			\
-		}							\
+		elm = RB_PARENT(elm, field);				\
 	}								\
 	return (elm);							\
 }
@@ -742,15 +752,10 @@ name##_RB_PREV(struct type *elm)					\
 		while (RB_RIGHT(elm, field))				\
 			elm = RB_RIGHT(elm, field);			\
 	} else {							\
-		if (RB_PARENT(elm, field) &&				\
-		    (elm == RB_RIGHT(RB_PARENT(elm, field), field)))	\
+		while (RB_PARENT(elm, field) &&				\
+		    (elm == RB_LEFT(RB_PARENT(elm, field), field)))	\
 			elm = RB_PARENT(elm, field);			\
-		else {							\
-			while (RB_PARENT(elm, field) &&			\
-			    (elm == RB_LEFT(RB_PARENT(elm, field), field)))\
-				elm = RB_PARENT(elm, field);		\
-			elm = RB_PARENT(elm, field);			\
-		}							\
+		elm = RB_PARENT(elm, field);				\
 	}								\
 	return (elm);							\
 }

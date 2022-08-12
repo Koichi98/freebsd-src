@@ -40,10 +40,8 @@
 #include <sys/mnttab.h>
 #include <sys/param.h>
 #include <sys/types.h>
-#include <sys/varargs.h>
 #include <sys/fs/zfs.h>
 #include <sys/avl.h>
-#include <ucred.h>
 #include <libzfs_core.h>
 
 #ifdef	__cplusplus
@@ -152,6 +150,7 @@ typedef enum zfs_error {
 	EZFS_EXPORT_IN_PROGRESS,	/* currently exporting the pool */
 	EZFS_REBUILDING,	/* resilvering (sequential reconstrution) */
 	EZFS_VDEV_NOTSUP,	/* ops not supported for this type of vdev */
+	EZFS_NOT_USER_NAMESPACE,	/* a file is not a user namespace */
 	EZFS_UNKNOWN
 } zfs_error_t;
 
@@ -916,8 +915,8 @@ _LIBZFS_H int libzfs_envvar_is_set(char *);
 /*
  * Utility functions for zfs version
  */
-_LIBZFS_H void zfs_version_userland(char *, int);
-_LIBZFS_H int zfs_version_kernel(char *, int);
+_LIBZFS_H const char *zfs_version_userland(void);
+_LIBZFS_H char *zfs_version_kernel(void);
 _LIBZFS_H int zfs_version_print(void);
 
 /*
@@ -980,6 +979,15 @@ _LIBZFS_H int zpool_nextboot(libzfs_handle_t *, uint64_t, uint64_t,
     const char *);
 
 #endif /* __FreeBSD__ */
+
+#ifdef __linux__
+
+/*
+ * Add or delete the given filesystem to/from the given user namespace.
+ */
+_LIBZFS_H int zfs_userns(zfs_handle_t *zhp, const char *nspath, int attach);
+
+#endif
 
 #ifdef	__cplusplus
 }

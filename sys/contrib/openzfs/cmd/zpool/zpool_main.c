@@ -5946,7 +5946,7 @@ print_header(list_cbdata_t *cb)
 			first = B_FALSE;
 
 		right_justify = B_FALSE;
-		if (pl->pl_prop != ZPROP_INVAL) {
+		if (pl->pl_prop != ZPROP_USERPROP) {
 			header = zpool_prop_column_name(pl->pl_prop);
 			right_justify = zpool_prop_align_right(pl->pl_prop);
 		} else {
@@ -6004,7 +6004,7 @@ print_pool(zpool_handle_t *zhp, list_cbdata_t *cb)
 		}
 
 		right_justify = B_FALSE;
-		if (pl->pl_prop != ZPROP_INVAL) {
+		if (pl->pl_prop != ZPROP_USERPROP) {
 			if (zpool_get_prop(zhp, pl->pl_prop, property,
 			    sizeof (property), NULL, cb->cb_literal) != 0)
 				propstr = "-";
@@ -10818,11 +10818,7 @@ static int
 zpool_do_version(int argc, char **argv)
 {
 	(void) argc, (void) argv;
-
-	if (zfs_version_print() == -1)
-		return (1);
-
-	return (0);
+	return (zfs_version_print() != 0);
 }
 
 /*
