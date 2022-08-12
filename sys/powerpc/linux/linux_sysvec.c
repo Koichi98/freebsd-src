@@ -90,6 +90,7 @@ MODULE_VERSION(linux64elf, 1);
 				    sizeof(struct ps_strings))
 
 extern struct sysent linux_sysent[LINUX_SYS_MAXSYSCALL];
+uintptr_t aux_vec;
 
 SET_DECLARE(linux_ioctl_handler_set, struct linux_ioctl_handler);
 
@@ -104,6 +105,9 @@ static void	linux_exec_setregs(struct thread *td, struct image_params *imgp,
 		    uintptr_t stack);
 static int	linux_on_exec_vmspace(struct proc *p,
 		    struct image_params *imgp);
+static void linux_exec_setregs_funcdesc(struct thread *td, struct image_params *imgp,
+    uintptr_t stack);
+
 
 
 static int
@@ -372,6 +376,7 @@ linux_copyout_strings(struct image_params *imgp, uintptr_t *stack_base)
 
 	if (imgp->auxargs) {
 		vectp++;
+		aux_vec = (uintptr_t)vectp;
 		error = imgp->sysent->sv_copyout_auxargs(imgp,
 		    (uintptr_t)vectp);
 		if (error != 0)
@@ -379,6 +384,52 @@ linux_copyout_strings(struct image_params *imgp, uintptr_t *stack_base)
 	}
 
 	return (0);
+}
+
+static void
+cleanup_power_extras(struct thread *td)
+{
+	uint32_t pcb_flags;
+
+	if (td != curthread)
+		return;
+
+	pcb_flags = td->td_pcb->pcb_flags;
+	/* Clean up registers not managed by MSR. */
+	if (pcb_flags & PCB_CFSCR)
+		mtspr(SPR_FSCR, 0);
+	if (pcb_flags & PCB_CDSCR) 
+		mtspr(SPR_DSCRP, 0);
+
+	//if (pcb_flags & PCB_FPU)
+		//cleanup_fpscr();
+}
+
+
+static void  
+linux_exec_setregs_funcdesc(struct thread *td, struct image_params *imgp,
+    uintptr_t stack)
+{
+	struct trapframe *tf;
+	register_t entry_desc[3];
+
+	tf = trapframe(td);
+	linux_exec_setregs(td, imgp, stack);
+
+	/*
+	 * For 64-bit ELFv1, we need to disentangle the function
+	 * descriptor
+	 *
+	 * 0. entry point
+	 * 1. TOC value (r2)
+	 * 2. Environment pointer (r11)
+	 */
+
+	(void)copyin((void *)imgp->entry_addr, entry_desc,
+	    sizeof(entry_desc));
+	tf->srr0 = entry_desc[0] + imgp->reloc_base;
+	tf->fixreg[2] = entry_desc[1] + imgp->reloc_base;
+	tf->fixreg[11] = entry_desc[2] + imgp->reloc_base;
 }
 
 /*
@@ -419,7 +470,7 @@ linux_exec_setregs(struct thread *td, struct image_params *imgp,
 	tf->fixreg[3] = argc;
 	tf->fixreg[4] = stack + sizeof(register_t);
 	tf->fixreg[5] = stack + (2 + argc)*sizeof(register_t);
-	tf->fixreg[6] = 0;				/* auxillary vector */
+	tf->fixreg[6] = aux_vec;				/* auxillary vector */
 	tf->fixreg[7] = 0;				/* termination vector */
 	tf->fixreg[8] = (register_t)imgp->ps_strings;	/* NetBSD extension */
 
@@ -429,7 +480,7 @@ linux_exec_setregs(struct thread *td, struct image_params *imgp,
 	#endif
 	tf->srr1 = psl_userset | PSL_FE_DFLT;
 	// TODO
-	//cleanup_power_extras(td);
+	cleanup_power_extras(td);
 	td->td_pcb->pcb_flags = 0;
 
 
@@ -464,7 +515,8 @@ struct sysentvec elf_linux_sysvec = {
 	.sv_stackprot	= VM_PROT_READ | VM_PROT_WRITE,
 	.sv_copyout_auxargs = linux_copyout_auxargs,
 	.sv_copyout_strings = linux_copyout_strings,
-	.sv_setregs	= linux_exec_setregs,
+	//.sv_setregs	= linux_exec_setregs,
+	.sv_setregs	= linux_exec_setregs_funcdesc,
 	.sv_fixlimit	= NULL,
 	.sv_maxssiz	= NULL,
 	.sv_flags	= SV_ABI_LINUX | SV_LP64 | SV_SHP | SV_SIG_DISCIGN |
