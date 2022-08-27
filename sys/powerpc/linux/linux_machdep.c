@@ -48,6 +48,13 @@ __FBSDID("$FreeBSD$");
 #include <compat/linux/linux_util.h>
 
 
+int
+linux_mmap(struct thread *td, struct linux_mmap_args *uap)
+{
+
+	return (linux_mmap_common(td, PTROUT(uap->addr), uap->len, uap->prot,
+	    uap->flags, uap->fd, uap->pgoff));
+}
 
 int
 linux_mmap2(struct thread *td, struct linux_mmap2_args *uap)

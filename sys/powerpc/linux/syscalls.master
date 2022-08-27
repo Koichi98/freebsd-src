@@ -399,7 +399,16 @@
 		);
 	}
 89	AUE_NULL	UNIMPL	linux_readdir
-90	AUE_NULL	UNIMPL	linux_mmap
+90	AUE_MMAP	STD {
+		int linux_mmap(
+		    l_ulong addr,
+		    l_ulong len,
+		    l_ulong prot,
+		    l_ulong flags,
+		    l_ulong fd,
+		    l_ulong pgoff
+		);
+	}
 91	AUE_MUNMAP	NOPROTO {
 		int munmap(
 		    void *addr,

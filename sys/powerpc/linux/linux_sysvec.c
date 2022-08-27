@@ -132,6 +132,7 @@ linux_fetch_syscall_args(struct thread *td)
 	sa->args[5] = frame->fixreg[LINUX_FIRSTARG+5];
 
 	sa->code = frame->fixreg[0];
+	uprintf("sa->code:%d\n",sa->code);
 	sa->original_code = sa->code;
 
 	// What to do with cr registers?
@@ -174,7 +175,7 @@ linux_set_syscall_retval(struct thread *td, int error)
 		tf->fixreg[LINUX_FIRSTARG] = td->td_retval[0];
 		tf->fixreg[LINUX_FIRSTARG + 1] = td->td_retval[1];
 	}
-	cpu_set_syscall_retval(td, error);
+	//cpu_set_syscall_retval(td, error);
 
 	if (__predict_false(error != 0)) {
 		// Not sure why only for ERESTART and EJUSTRETURN
@@ -447,7 +448,8 @@ linux_exec_setregs(struct thread *td, struct image_params *imgp,
 	tf = trapframe(td);
 	bzero(tf, sizeof *tf);
 	#ifdef __powerpc64__
-	tf->fixreg[1] = -roundup(-stack + 48, 16);
+	//tf->fixreg[1] = -roundup(-stack + 48, 16);
+	tf->fixreg[1] = stack;
 	#else
 	tf->fixreg[1] = -roundup(-stack + 8, 16);
 	#endif
