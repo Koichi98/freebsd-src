@@ -37,11 +37,12 @@
  * XXX comments in Linux' <asm-generic/ioctl.h> indicate these
  * could be arch-dependant...
  */
+#ifndef LINUX_IOCTL
 #define LINUX_IOC_VOID		0
 #define LINUX_IOC_IN		0x40000000
 #define LINUX_IOC_OUT		0x80000000
 #define LINUX_IOC_INOUT		(LINUX_IOC_IN|LINUX_IOC_OUT)
-
+#endif
 /*
  * disk
  */
@@ -331,9 +332,13 @@
 /*
  * termio
  */
+#ifndef LINUX_TCGETS
 #define	LINUX_TCGETS		0x5401
+#endif
 #define	LINUX_TCSETS		0x5402
+#ifndef LINUX_TCSETSW
 #define	LINUX_TCSETSW		0x5403
+#endif
 #define	LINUX_TCSETSF		0x5404
 #define	LINUX_TCGETA		0x5405
 #define	LINUX_TCSETA		0x5406
@@ -347,14 +352,18 @@
 #define	LINUX_TIOCNXCL		0x540D
 #define	LINUX_TIOCSCTTY		0x540E
 
+#ifndef LINUX_TIOCGPGRP
 #define	LINUX_TIOCGPGRP		0x540F
 #define	LINUX_TIOCSPGRP		0x5410
+#endif
 
 #define	LINUX_TIOCOUTQ		0x5411
 #define	LINUX_TIOCSTI		0x5412
 
+#ifndef LINUX_TIOCGWINSZ
 #define	LINUX_TIOCGWINSZ	0x5413
 #define	LINUX_TIOCSWINSZ	0x5414
+#endif
 
 #define	LINUX_TIOCMGET		0x5415
 #define	LINUX_TIOCMBIS		0x5416
@@ -398,8 +407,10 @@
 #define	LINUX_TIOCGLCKTRMIOS	0x5456
 #define	LINUX_TIOCSLCKTRMIOS	0x5457
 
-#define	LINUX_IOCTL_TERMIO_MIN	LINUX_TCGETS
+#define	LINUX_IOCTL_TERMIO_MIN	LINUX_TCSETS
+#ifndef LINUX_IOCTL_TERMIO_MAX	
 #define	LINUX_IOCTL_TERMIO_MAX	LINUX_TIOCSLCKTRMIOS
+#endif
 
 /* arguments for tcflow() and LINUX_TCXONC */
 #define	LINUX_TCOOFF		0
@@ -419,6 +430,7 @@
 #define	LINUX_N_PPP		3
 
 /* Linux termio c_cc values */
+#ifndef LINUX_CFLAGS
 #define	LINUX_VINTR		0
 #define	LINUX_VQUIT		1
 #define	LINUX_VERASE		2
@@ -427,10 +439,12 @@
 #define	LINUX_VTIME		5
 #define	LINUX_VMIN		6
 #define	LINUX_VSWTC		7
+#endif
 #define	LINUX_NCC		8
 
 /* Linux termios c_cc values */
 /* In addition to the termio values */
+#ifndef LINUX_CFLAGS
 #define	LINUX_VSTART		8
 #define	LINUX_VSTOP		9
 #define	LINUX_VSUSP		10
@@ -440,6 +454,7 @@
 #define	LINUX_VWERASE		14
 #define	LINUX_VLNEXT		15
 #define	LINUX_VEOL2		16
+#endif
 #define	LINUX_VSTATUS		18
 #define	LINUX_NCCS		19
 
@@ -456,18 +471,24 @@
 #define	LINUX_IGNCR		0x0000080
 #define	LINUX_ICRNL		0x0000100
 
+#ifndef LINUX_CFLAGS
 #define	LINUX_IUCLC		0x0000200
 #define	LINUX_IXON		0x0000400
+#endif
 #define	LINUX_IXANY		0x0000800
+#ifndef LINUX_CFLAGS
 #define	LINUX_IXOFF		0x0001000
 
 #define	LINUX_IMAXBEL		0x0002000
+#endif
 
 /* Linux c_oflag masks */
 #define	LINUX_OPOST		0x0000001
 
+#ifndef LINUX_CFLAGS
 #define	LINUX_OLCUC		0x0000002
 #define	LINUX_ONLCR		0x0000004
+#endif
 
 #define	LINUX_OCRNL		0x0000008
 #define	LINUX_ONOCR		0x0000010
@@ -475,6 +496,7 @@
 #define	LINUX_OFILL		0x0000040
 #define	LINUX_OFDEL		0x0000080
 
+#ifndef LINUX_CFLAGS
 #define	LINUX_NLDLY		0x0000100
 #define	LINUX_NL0		0x0000000
 #define	LINUX_NL1		0x0000100
@@ -498,8 +520,11 @@
 #define	LINUX_FFDLY		0x0008000
 #define	LINUX_FF0		0x0000000
 #define	LINUX_FF1		0x0008000
+#endif
 
+#ifndef LINUX_CFLAGS
 #define	LINUX_CBAUD		0x0000100f
+#endif
 
 #define	LINUX_B0		0x00000000
 #define	LINUX_B50		0x00000001
@@ -520,10 +545,13 @@
 #define	LINUX_EXTA		LINUX_B19200
 #define	LINUX_EXTB		LINUX_B38400
 
+#ifndef LINUX_CFLAGS
 #define	LINUX_CBAUDEX		0x00001000
+#endif
 #define	LINUX_B57600		0x00001001
 #define	LINUX_B115200		0x00001002
 
+#ifndef LINUX_CFLAGS
 #define	LINUX_CSIZE		0x00000030
 #define	LINUX_CS5		0x00000000
 #define	LINUX_CS6		0x00000010
@@ -535,10 +563,12 @@
 #define	LINUX_PARODD		0x00000200
 #define	LINUX_HUPCL		0x00000400
 #define	LINUX_CLOCAL		0x00000800
+#endif
 
 #define	LINUX_CRTSCTS		0x80000000
 
 /* Linux c_lflag masks */
+#ifndef LINUX_CFLAGS
 #define	LINUX_ISIG		0x00000001
 #define	LINUX_ICANON		0x00000002
 #define	LINUX_XCASE		0x00000004
@@ -554,6 +584,7 @@
 #define	LINUX_FLUSHO		0x00001000
 #define	LINUX_PENDIN		0x00002000
 #define	LINUX_IEXTEN		0x00008000
+#endif
 
 /* serial_struct values for TIOC[GS]SERIAL ioctls */
 #define	LINUX_ASYNC_CLOSING_WAIT_INF  0
