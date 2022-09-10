@@ -117,8 +117,8 @@ struct l_rlimit {
 
 /* stat family of syscalls */
 struct l_timespec {
-	l_time_t	tv_sec;
-	l_long		tv_nsec;
+	l_ulong		tv_sec;
+	l_ulong		tv_nsec;
 };
 
 #define LINUX_O_DIRECTORY      040000	/* must be a directory */
@@ -133,24 +133,23 @@ struct l_timespec {
 struct l_newstat {
 	l_dev_t		st_dev;
 	l_ino_t		st_ino;
+	l_ulong 	st_nlink;
 	l_uint		st_mode;
-	l_uint		st_nlink;
 
 	l_uid_t		st_uid;
 	l_gid_t		st_gid;
 
 	l_dev_t		st_rdev;
-	l_ulong		__st_pad1;
-	l_off_t		st_size;
-	l_int		st_blksize;
-	l_int		__st_pad2;
-	l_long		st_blocks;
+	l_long		st_size;
+	l_ulong		st_blksize;
+	l_ulong		st_blocks;
 
 	struct l_timespec	st_atim;
 	struct l_timespec	st_mtim;
 	struct l_timespec	st_ctim;
-	l_uint		__unused1;
-	l_uint		__unused2;
+	l_ulong		__unused1;
+	l_ulong		__unused2;
+	l_ulong		__unused3;
 };
 
 /* sigaction flags */
