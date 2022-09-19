@@ -503,6 +503,18 @@ systrace_args(int sysnum, void *params, uint64_t *uarg, int *n_args)
 		*n_args = 4;
 		break;
 	}
+	/* linux_mmap */
+	case 90: {
+		struct linux_mmap_args *p = params;
+		iarg[a++] = p->addr; /* l_ulong */
+		iarg[a++] = p->len; /* l_ulong */
+		iarg[a++] = p->prot; /* l_ulong */
+		iarg[a++] = p->flags; /* l_ulong */
+		iarg[a++] = p->fd; /* l_ulong */
+		iarg[a++] = p->pgoff; /* l_ulong */
+		*n_args = 6;
+		break;
+	}
 	/* munmap */
 	case 91: {
 		struct munmap_args *p = params;
@@ -997,9 +1009,7 @@ systrace_args(int sysnum, void *params, uint64_t *uarg, int *n_args)
 	}
 	/* linux_rt_sigreturn */
 	case 172: {
-		struct linux_rt_sigreturn_args *p = params;
-		uarg[a++] = (intptr_t)p->ucp; /* struct l_ucontext * */
-		*n_args = 1;
+		*n_args = 0;
 		break;
 	}
 	/* linux_rt_sigaction */
@@ -3414,6 +3424,31 @@ systrace_entry_setargdesc(int sysnum, int ndx, char *desc, size_t descsz)
 			break;
 		};
 		break;
+	/* linux_mmap */
+	case 90:
+		switch (ndx) {
+		case 0:
+			p = "l_ulong";
+			break;
+		case 1:
+			p = "l_ulong";
+			break;
+		case 2:
+			p = "l_ulong";
+			break;
+		case 3:
+			p = "l_ulong";
+			break;
+		case 4:
+			p = "l_ulong";
+			break;
+		case 5:
+			p = "l_ulong";
+			break;
+		default:
+			break;
+		};
+		break;
 	/* munmap */
 	case 91:
 		switch (ndx) {
@@ -4178,13 +4213,6 @@ systrace_entry_setargdesc(int sysnum, int ndx, char *desc, size_t descsz)
 		break;
 	/* linux_rt_sigreturn */
 	case 172:
-		switch (ndx) {
-		case 0:
-			p = "userland struct l_ucontext *";
-			break;
-		default:
-			break;
-		};
 		break;
 	/* linux_rt_sigaction */
 	case 173:
@@ -7263,6 +7291,11 @@ systrace_return_setargdesc(int sysnum, int ndx, char *desc, size_t descsz)
 		if (ndx == 0 || ndx == 1)
 			p = "int";
 		break;
+	/* linux_mmap */
+	case 90:
+		if (ndx == 0 || ndx == 1)
+			p = "int";
+		break;
 	/* munmap */
 	case 91:
 		if (ndx == 0 || ndx == 1)
@@ -7555,9 +7588,6 @@ systrace_return_setargdesc(int sysnum, int ndx, char *desc, size_t descsz)
 		break;
 	/* linux_rt_sigreturn */
 	case 172:
-		if (ndx == 0 || ndx == 1)
-			p = "int";
-		break;
 	/* linux_rt_sigaction */
 	case 173:
 		if (ndx == 0 || ndx == 1)

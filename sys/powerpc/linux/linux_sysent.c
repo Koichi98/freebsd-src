@@ -107,7 +107,7 @@ struct sysent linux_sysent[] = {
 	{ .sy_narg = AS(swapon_args), .sy_call = (sy_call_t *)sys_swapon, .sy_auevent = AUE_SWAPON, .sy_flags = 0, .sy_thrcnt = SY_THR_STATIC },	/* 87 = swapon */
 	{ .sy_narg = AS(linux_reboot_args), .sy_call = (sy_call_t *)linux_reboot, .sy_auevent = AUE_REBOOT, .sy_flags = 0, .sy_thrcnt = SY_THR_STATIC },	/* 88 = linux_reboot */
 	{ .sy_narg = 0, .sy_call = (sy_call_t *)nosys, .sy_auevent = AUE_NULL, .sy_flags = 0, .sy_thrcnt = SY_THR_ABSENT },			/* 89 = linux_readdir */
-	{ .sy_narg = 0, .sy_call = (sy_call_t *)nosys, .sy_auevent = AUE_NULL, .sy_flags = 0, .sy_thrcnt = SY_THR_ABSENT },			/* 90 = linux_mmap */
+	{ .sy_narg = AS(linux_mmap_args), .sy_call = (sy_call_t *)linux_mmap, .sy_auevent = AUE_MMAP, .sy_flags = 0, .sy_thrcnt = SY_THR_STATIC },	/* 90 = linux_mmap */
 	{ .sy_narg = AS(munmap_args), .sy_call = (sy_call_t *)sys_munmap, .sy_auevent = AUE_MUNMAP, .sy_flags = 0, .sy_thrcnt = SY_THR_STATIC },	/* 91 = munmap */
 	{ .sy_narg = AS(linux_truncate_args), .sy_call = (sy_call_t *)linux_truncate, .sy_auevent = AUE_TRUNCATE, .sy_flags = 0, .sy_thrcnt = SY_THR_STATIC },	/* 92 = linux_truncate */
 	{ .sy_narg = AS(linux_ftruncate_args), .sy_call = (sy_call_t *)linux_ftruncate, .sy_auevent = AUE_FTRUNCATE, .sy_flags = 0, .sy_thrcnt = SY_THR_STATIC },	/* 93 = linux_ftruncate */
@@ -189,7 +189,7 @@ struct sysent linux_sysent[] = {
 	{ .sy_narg = AS(setresgid_args), .sy_call = (sy_call_t *)sys_setresgid, .sy_auevent = AUE_SETRESGID, .sy_flags = 0, .sy_thrcnt = SY_THR_STATIC },	/* 169 = setresgid */
 	{ .sy_narg = AS(getresgid_args), .sy_call = (sy_call_t *)sys_getresgid, .sy_auevent = AUE_GETRESGID, .sy_flags = 0, .sy_thrcnt = SY_THR_STATIC },	/* 170 = getresgid */
 	{ .sy_narg = AS(linux_prctl_args), .sy_call = (sy_call_t *)linux_prctl, .sy_auevent = AUE_PRCTL, .sy_flags = 0, .sy_thrcnt = SY_THR_STATIC },	/* 171 = linux_prctl */
-	{ .sy_narg = AS(linux_rt_sigreturn_args), .sy_call = (sy_call_t *)linux_rt_sigreturn, .sy_auevent = AUE_NULL, .sy_flags = 0, .sy_thrcnt = SY_THR_STATIC },	/* 172 = linux_rt_sigreturn */
+	{ .sy_narg = 0, .sy_call = (sy_call_t *)linux_rt_sigreturn, .sy_auevent = AUE_NULL, .sy_flags = 0, .sy_thrcnt = SY_THR_STATIC },	/* 172 = linux_rt_sigreturn */
 	{ .sy_narg = AS(linux_rt_sigaction_args), .sy_call = (sy_call_t *)linux_rt_sigaction, .sy_auevent = AUE_NULL, .sy_flags = 0, .sy_thrcnt = SY_THR_STATIC },	/* 173 = linux_rt_sigaction */
 	{ .sy_narg = AS(linux_rt_sigprocmask_args), .sy_call = (sy_call_t *)linux_rt_sigprocmask, .sy_auevent = AUE_NULL, .sy_flags = 0, .sy_thrcnt = SY_THR_STATIC },	/* 174 = linux_rt_sigprocmask */
 	{ .sy_narg = AS(linux_rt_sigpending_args), .sy_call = (sy_call_t *)linux_rt_sigpending, .sy_auevent = AUE_NULL, .sy_flags = 0, .sy_thrcnt = SY_THR_STATIC },	/* 175 = linux_rt_sigpending */
