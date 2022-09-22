@@ -58,6 +58,7 @@ __FBSDID("$FreeBSD$");
 
 #include <powerpc/linux/linux.h>
 #include <powerpc/linux/linux_proto.h>
+#include <powerpc/linux/linux_sigframe.h>
 #include <compat/linux/linux_dtrace.h>
 #include <compat/linux/linux_emul.h>
 #include <compat/linux/linux_fork.h>
@@ -68,7 +69,6 @@ __FBSDID("$FreeBSD$");
 #include <compat/linux/linux_util.h>
 #include <compat/linux/linux_vdso.h>
 
-//#include <powerpc/linux/linux_sigframe.h>
 #include <machine/md_var.h>
 
 #ifdef VFP
@@ -108,13 +108,14 @@ static int	linux_on_exec_vmspace(struct proc *p,
 static void linux_exec_setregs_funcdesc(struct thread *td, struct image_params *imgp,
     uintptr_t stack);
 
+static void linux_dump_signal_frame(int *l_rt_sigframe);
 
 
 static int
 linux_fetch_syscall_args(struct thread *td)
 {
-	uprintf(__func__);
-	uprintf("\n");
+	//uprintf(__func__);
+	//uprintf("\n");
 	struct proc *p;
 	struct syscall_args *sa;
 	struct trapframe *frame;
@@ -132,7 +133,7 @@ linux_fetch_syscall_args(struct thread *td)
 	sa->args[5] = frame->fixreg[LINUX_FIRSTARG+5];
 
 	sa->code = frame->fixreg[0];
-	uprintf("sa->code:%d\n",sa->code);
+	//uprintf("sa->code:%d\n",sa->code);
 	sa->original_code = sa->code;
 
 	// What to do with cr registers?
@@ -152,8 +153,8 @@ static void
 linux_set_syscall_retval(struct thread *td, int error)
 {
 
-	uprintf(__func__);
-	uprintf("\n");
+	//uprintf(__func__);
+	//uprintf("\n");
 	// Refer from cpu_set_syscall_retval():/sys/powerpc/powerpc/exec_machdep.c
 	struct trapframe *tf;
 	int fixup;
@@ -274,6 +275,7 @@ linux_copyout_strings(struct image_params *imgp, uintptr_t *stack_base)
 	int argc, envc, error;
 
 	p = imgp->proc;
+	printf("stacktop:%lx\n",p->p_vmspace->vm_stacktop);
 	arginfo = (struct ps_strings *)PROC_PS_STRINGS(p);
 	destp = (uintptr_t)arginfo;
 
@@ -488,10 +490,150 @@ linux_exec_setregs(struct thread *td, struct image_params *imgp,
 
 }
 
+void linux_dump_signal_frame(int *l_rt_sigframe){
+    printf("----------------------------------------\n");
+    //for(int i=0;i<LINUX__SIGNAL_FRAMESIZE;i++){
+    for(int i=0;i<128;i++){
+        printf("%02x",*((char*)l_rt_sigframe+i));
+        if(i%2==1){
+            printf(" ");
+        }
+        if(i%8==7){
+            printf("\n");
+        }
+    }
+    printf("----------------------------------------\n");
+}
+
+
 int
 linux_rt_sigreturn(struct thread *td, struct linux_rt_sigreturn_args *args)
 {
+	printf("linux_rt_sigreturn called\n");
 	return 0;
+}
+
+static void
+linux_rt_sendsig(sig_t catcher, ksiginfo_t *ksi, sigset_t *mask)
+{
+	struct thread *td;
+	struct proc *p;
+	struct trapframe *tf;
+	struct l_sigframe *fp, *frame;
+	struct l_rt_sigframe *l_frame;
+	l_stack_t uc_stack;
+	ucontext_t f_uc;
+	struct sigacts *psp;
+	int onstack, sig, issiginfo;
+	unsigned long newsp;
+
+	printf("sendsig\n");
+	td = curthread;
+	p = td->td_proc;
+	PROC_LOCK_ASSERT(p, MA_OWNED);
+
+	sig = ksi->ksi_signo;
+	psp = p->p_sigacts;
+	mtx_assert(&psp->ps_mtx, MA_OWNED);
+
+	tf = td->td_frame;
+	onstack = sigonstack(tf->fixreg[1]);
+	issiginfo = SIGISMEMBER(psp->ps_siginfo, sig);
+
+
+	fp = (struct l_sigframe *)td->td_frame->fixreg[1];
+		
+	/* Might need to keep the stack align */
+	fp--;
+
+	mtx_unlock(&psp->ps_mtx);
+	PROC_UNLOCK(td->td_proc);
+	get_mcontext(td, &f_uc.uc_mcontext, 0);
+	PROC_LOCK(p);
+	mtx_lock(&psp->ps_mtx);
+	
+	f_uc.uc_sigmask = *mask;
+	/* What about the other ucontext_t member variables? No need to initialize? */
+
+	uc_stack.ss_sp = PTROUT(td->td_sigstk.ss_sp);
+	uc_stack.ss_size = td->td_sigstk.ss_size;
+	uc_stack.ss_flags = (td->td_pflags & TDP_ALTSTACK) != 0 ?
+	    (onstack ? LINUX_SS_ONSTACK : 0) : LINUX_SS_DISABLE;
+
+	mtx_unlock(&psp->ps_mtx);
+	PROC_UNLOCK(td->td_proc);
+
+	/* Fill in the frame to copy out */
+	frame = malloc(sizeof(*frame), M_LINUX, M_WAITOK | M_ZERO);
+	memcpy(&frame->f_uc, &f_uc, sizeof(f_uc));
+	l_frame = (struct l_rt_sigframe*)frame;
+
+	l_frame->pinfo = &l_frame->info;
+	l_frame->puc = &l_frame->uc;
+
+	/* Create the l_ucontext */
+	l_frame->uc.uc_flags = 0;
+	memcpy(&l_frame->uc.uc_stack, &uc_stack, sizeof(uc_stack));
+	l_frame->uc.uc_link = 0;
+	/* __unsafe_setup_sigcontext() */
+	unsigned long softe = 0x1;
+	l_frame->uc.uc_mcontext.v_regs = 0;	
+	/* if CONFIG_VSX or CONFIG_PPC_FPU_REGS is defined, unsafe_copy_fpr_to_usr() must be called */
+	l_frame->uc.uc_mcontext.regs = (struct l_user_pt_regs*)&l_frame->uc.uc_mcontext.gp_regs;
+	memcpy(&l_frame->uc.uc_mcontext.gp_regs, &tf, GP_REGS_SIZE);
+	l_frame->uc.uc_mcontext.gp_regs[PT_SOFTE] = softe;
+	sig = bsd_to_linux_signal(sig);
+	l_frame->uc.uc_mcontext.signal = sig;
+	l_frame->uc.uc_mcontext.handler = (unsigned long)catcher;
+
+	bsd_to_linux_sigset(mask, &l_frame->uc.uc_sigmask);
+
+	siginfo_to_lsiginfo(&ksi->ksi_info, &l_frame->info, sig);
+
+	/* Might need to make sure signal handler doesn't get spurious FP exceptions? */
+	l_frame->tramp[0] = 0x4e800421;
+
+	/* Copy the sigframe out to the user's stack. */
+	if (copyout(frame, fp, sizeof(*fp)) != 0) {
+		/* Process has trashed its stack. Kill it. */
+		free(frame, M_LINUX);
+		CTR2(KTR_SIG, "sendsig: sigexit td=%p fp=%p", td, fp);
+		PROC_LOCK(p);
+		sigexit(td, SIGILL);
+	}
+	free(frame, M_LINUX);
+
+	/* Set up to return from userspace. */
+	tf->srr0 = (register_t)&fp->sf.tramp[0];
+	printf("srr0:%lx\n",(unsigned long)&fp->sf.tramp[0]);
+
+	/* Might need to allocate a dummy caller frame for the signal handler. */
+	newsp = (unsigned long)fp - LINUX__SIGNAL_FRAMESIZE;
+
+	/* For ELFv1 */
+	/* Handler is *really* a pointer to the function descriptor for
+	* the signal routine.  The first entry in the function
+	* descriptor is the entry address of signal and the second
+	* entry is the TOC value we need to use.
+	*/
+	struct l_func_desc *ptr = (struct l_func_desc*)catcher;
+	tf->ctr = (register_t)&ptr->addr;
+	tf->fixreg[2] = (register_t)&ptr->toc;
+
+	tf->fixreg[1] = (register_t)newsp;
+	tf->fixreg[3] = (register_t)sig;
+
+	if(issiginfo){
+		tf->fixreg[4] = (register_t)&fp->sf.info;
+		tf->fixreg[5] = (register_t)&fp->sf.uc;
+		tf->fixreg[6] = (register_t)&fp->sf;
+	}else{
+		tf->fixreg[4] = (register_t)&fp->sf.uc.uc_mcontext;
+	}
+
+	PROC_LOCK(p);
+	mtx_lock(&psp->ps_mtx);
+	printf("sendsig end\n");
 }
 
 struct sysentvec elf_linux_sysvec = {
@@ -499,9 +641,9 @@ struct sysentvec elf_linux_sysvec = {
 	.sv_table	= linux_sysent,
 //	.sv_fixup	= linux_elf_fixup,
 	.sv_fixup	= __elfN(freebsd_fixup),
-	.sv_sendsig	= NULL,
-	.sv_sigcode	= NULL,
-	.sv_szsigcode	= NULL,
+	.sv_sendsig	= linux_rt_sendsig,
+	.sv_sigcode	= sigcode64,
+	.sv_szsigcode	= &szsigcode64,
 	.sv_name	= "Linux ELF64",
 	.sv_coredump	= elf64_coredump,
 	.sv_elf_core_osabi = ELFOSABI_NONE,
@@ -514,14 +656,14 @@ struct sysentvec elf_linux_sysvec = {
 	.sv_usrstack	= LINUX_USRSTACK,
 	.sv_psstrings	= LINUX_PS_STRINGS,
 	.sv_psstringssz	= sizeof(struct ps_strings),
-	.sv_stackprot	= VM_PROT_READ | VM_PROT_WRITE,
+	.sv_stackprot	= VM_PROT_READ | VM_PROT_WRITE | VM_PROT_EXECUTE, /* Enabling the execution of stack temporarily for signal trampoline. */
 	.sv_copyout_auxargs = linux_copyout_auxargs,
 	.sv_copyout_strings = linux_copyout_strings,
 	//.sv_setregs	= linux_exec_setregs,
 	.sv_setregs	= linux_exec_setregs_funcdesc,
 	.sv_fixlimit	= NULL,
 	.sv_maxssiz	= NULL,
-	.sv_flags	= SV_ABI_LINUX | SV_LP64 | SV_SHP | SV_SIG_DISCIGN |
+	.sv_flags	= SV_ABI_LINUX | SV_LP64 | SV_SIG_DISCIGN |
 	    SV_SIG_WAITNDQ | SV_TIMEKEEP,
 	.sv_set_syscall_retval = linux_set_syscall_retval,
 	.sv_fetch_syscall_args = linux_fetch_syscall_args,
