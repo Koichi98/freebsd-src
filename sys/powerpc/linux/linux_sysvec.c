@@ -89,6 +89,13 @@ MODULE_VERSION(linux64elf, 1);
 #define	LINUX_PS_STRINGS	(LINUX_USRSTACK - \
 				    sizeof(struct ps_strings))
 
+static int linux_szsigcode;
+static vm_object_t linux_vdso_obj;
+static char *linux_vdso_mapping;
+extern char _binary_linux_vdso_so_o_start;
+extern char _binary_linux_vdso_so_o_end;
+static vm_offset_t linux_vdso_base;
+
 extern struct sysent linux_sysent[LINUX_SYS_MAXSYSCALL];
 uintptr_t aux_vec;
 
@@ -103,13 +110,20 @@ static void	linux_set_syscall_retval(struct thread *td, int error);
 static int	linux_fetch_syscall_args(struct thread *td);
 static void	linux_exec_setregs(struct thread *td, struct image_params *imgp,
 		    uintptr_t stack);
+static void	linux_exec_sysvec_init(void *param);
 static int	linux_on_exec_vmspace(struct proc *p,
 		    struct image_params *imgp);
 static void linux_exec_setregs_funcdesc(struct thread *td, struct image_params *imgp,
     uintptr_t stack);
+static void	linux_vdso_install(const void *param);
+static void	linux_vdso_deinstall(const void *param);
+static void	linux_vdso_reloc(char *mapping, Elf_Addr offset);
 
 static void linux_dump_signal_frame(int *l_rt_sigframe);
 
+LINUX_VDSO_SYM_INTPTR(linux_vdso_sigcode);
+LINUX_VDSO_SYM_INTPTR(linux_vdso_rt_sigcode);
+LINUX_VDSO_SYM_INTPTR(kern_timekeep_base);
 
 static int
 linux_fetch_syscall_args(struct thread *td)
@@ -591,7 +605,6 @@ linux_rt_sendsig(sig_t catcher, ksiginfo_t *ksi, sigset_t *mask)
 	siginfo_to_lsiginfo(&ksi->ksi_info, &l_frame->info, sig);
 
 	/* Might need to make sure signal handler doesn't get spurious FP exceptions? */
-	l_frame->tramp[0] = 0x4e800421;
 
 	/* Copy the sigframe out to the user's stack. */
 	if (copyout(frame, fp, sizeof(*fp)) != 0) {
@@ -604,10 +617,10 @@ linux_rt_sendsig(sig_t catcher, ksiginfo_t *ksi, sigset_t *mask)
 	free(frame, M_LINUX);
 
 	/* Set up to return from userspace. */
-	tf->srr0 = (register_t)&fp->sf.tramp[0];
-	printf("srr0:%lx\n",(unsigned long)&fp->sf.tramp[0]);
+	tf->srr0 = (register_t)linux_vdso_sigcode;
+	printf("srr0:%lx\n",(unsigned long)linux_vdso_sigcode);
 
-	/* Might need to allocate a dummy caller frame for the signal handler. */
+	/* Allocate a dummy caller frame for the signal handler. */
 	newsp = (unsigned long)fp - LINUX__SIGNAL_FRAMESIZE;
 
 	/* For ELFv1 */
@@ -684,11 +697,118 @@ struct sysentvec elf_linux_sysvec = {
 static int
 linux_on_exec_vmspace(struct proc *p, struct image_params *imgp)
 {
+	int error;
 
-	linux_on_exec(p, imgp);
-	return (0);
+	error = linux_map_vdso(p, linux_vdso_obj, linux_vdso_base,
+	    LINUX_VDSOPAGE_SIZE, imgp);
+	if (error == 0)
+		linux_on_exec(p, imgp);
+	return (error);
 }
 
+/*
+ * linux_vdso_install() and linux_exec_sysvec_init() must be called
+ * after exec_sysvec_init() which is SI_SUB_EXEC (SI_ORDER_ANY).
+ */
+static void
+linux_exec_sysvec_init(void *param)
+{
+	l_uintptr_t *ktimekeep_base;
+	struct sysentvec *sv;
+	ptrdiff_t tkoff;
+
+	sv = param;
+	/* Fill timekeep_base */
+	exec_sysvec_init(sv);
+
+	tkoff = kern_timekeep_base - linux_vdso_base;
+	ktimekeep_base = (l_uintptr_t *)(linux_vdso_mapping + tkoff);
+	*ktimekeep_base = sv->sv_timekeep_base;
+}
+SYSINIT(elf_linux_exec_sysvec_init, SI_SUB_EXEC + 1, SI_ORDER_ANY,
+    linux_exec_sysvec_init, &elf_linux_sysvec);
+
+static void
+linux_vdso_install(const void *param)
+{
+	char *vdso_start = &_binary_linux_vdso_so_o_start;
+	char *vdso_end = &_binary_linux_vdso_so_o_end;
+
+	linux_szsigcode = vdso_end - vdso_start;
+	MPASS(linux_szsigcode <= LINUX_VDSOPAGE_SIZE);
+
+	linux_vdso_base = LINUX_VDSOPAGE;
+
+	__elfN(linux_vdso_fixup)(vdso_start, linux_vdso_base);
+
+	linux_vdso_obj = __elfN(linux_shared_page_init)
+	    (&linux_vdso_mapping, LINUX_VDSOPAGE_SIZE);
+	bcopy(vdso_start, linux_vdso_mapping, linux_szsigcode);
+
+	linux_vdso_reloc(linux_vdso_mapping, linux_vdso_base);
+}
+SYSINIT(elf_linux_vdso_init, SI_SUB_EXEC + 1, SI_ORDER_FIRST,
+    linux_vdso_install, NULL);
+
+static void
+linux_vdso_deinstall(const void *param)
+{
+
+	__elfN(linux_shared_page_fini)(linux_vdso_obj,
+	    linux_vdso_mapping, LINUX_VDSOPAGE_SIZE);
+}
+SYSUNINIT(elf_linux_vdso_uninit, SI_SUB_EXEC, SI_ORDER_FIRST,
+    linux_vdso_deinstall, NULL);
+
+static void
+linux_vdso_reloc(char *mapping, Elf_Addr offset)
+{
+	Elf_Size rtype, symidx;
+	const Elf_Rela *rela;
+	const Elf_Shdr *shdr;
+	const Elf_Ehdr *ehdr;
+	Elf_Addr *where;
+	Elf_Addr addr, addend;
+	int i, relacnt;
+
+	MPASS(offset != 0);
+
+	relacnt = 0;
+	ehdr = (const Elf_Ehdr *)mapping;
+	shdr = (const Elf_Shdr *)(mapping + ehdr->e_shoff);
+	for (i = 0; i < ehdr->e_shnum; i++)
+	{
+		switch (shdr[i].sh_type) {
+		case SHT_REL:
+			printf("Linux Powerpc64 vDSO: unexpected Rel section\n");
+			break;
+		case SHT_RELA:
+			rela = (const Elf_Rela *)(mapping + shdr[i].sh_offset);
+			relacnt = shdr[i].sh_size / sizeof(*rela);
+		}
+	}
+
+	for (i = 0; i < relacnt; i++, rela++) {
+		where = (Elf_Addr *)(mapping + rela->r_offset);
+		addend = rela->r_addend;
+		rtype = ELF_R_TYPE(rela->r_info);
+		symidx = ELF_R_SYM(rela->r_info);
+
+		switch (rtype) {
+		case R_PPC_NONE:	/* none */
+			break;
+
+		case R_PPC_RELATIVE:	/* B + A */
+			addr = (Elf_Addr)(mapping + addend);
+			if (*where != addr)
+				*where = addr;
+			break;
+		default:
+			printf("Linux Powerpc64 vDSO: unexpected relocation type %ld, "
+			    "symbol index %ld\n", rtype, symidx);
+		}
+	}
+}
 static char GNU_ABI_VENDOR[] = "GNU";
 static int GNU_ABI_LINUX = 0;
 
@@ -783,9 +903,9 @@ linux64_elf_modevent(module_t mod, int type, void *data)
 			SET_FOREACH(lihp, linux_ioctl_handler_set)
 				linux_ioctl_unregister_handler(*lihp);
 			if (bootverbose)
-				printf("Linux arm64 ELF exec handler removed\n");
+				printf("Linux powerpc64 ELF exec handler removed\n");
 		} else
-			printf("Could not deinstall Linux arm64 ELF interpreter entry\n");
+			printf("Could not deinstall Linux powerpc64 ELF interpreter entry\n");
 		break;
 	default:
 		return (EOPNOTSUPP);
