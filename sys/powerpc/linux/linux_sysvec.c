@@ -634,8 +634,10 @@ linux_rt_sendsig(sig_t catcher, ksiginfo_t *ksi, sigset_t *mask)
 	* entry is the TOC value we need to use.
 	*/
 	struct l_func_desc *ptr = (struct l_func_desc*)catcher;
-	tf->ctr = (register_t)&ptr->addr;
-	tf->fixreg[2] = (register_t)&ptr->toc;
+	printf("ptr->addr:%lx\n",ptr->addr);
+	tf->ctr = (register_t)ptr->addr;
+	printf("ptr->toc:%lx\n",ptr->toc);
+	//tf->fixreg[2] = (register_t)ptr->toc;
 
 	tf->fixreg[1] = (register_t)newsp;
 	tf->fixreg[3] = (register_t)sig;

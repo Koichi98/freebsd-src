@@ -370,37 +370,3 @@ powerpc/psim/iobus.c 		optional	psim
 powerpc/psim/ata_iobus.c	optional	ata psim
 powerpc/psim/openpic_iobus.c	optional	psim
 powerpc/psim/uart_iobus.c	optional	uart psim
-powerpc/linux/linux_machdep.c   standard
-powerpc/linux/linux_dummy_machdep.c standard
-powerpc/linux/linux_syscalls.c  standard
-powerpc/linux/linux_sysent.c    standard
-powerpc/linux/linux_sysvec.c	standard
-powerpc/linux/linux_genassym.c  standard
-powerpc/linux/linux_support.s   standard
-compat/linux/linux_common.c standard
-compat/linux/linux_dummy.c standard
-compat/linux/linux_elf64.c standard
-compat/linux/linux_emul.c standard
-compat/linux/linux_errno.c standard
-compat/linux/linux_event.c standard
-compat/linux/linux_file.c standard
-compat/linux/linux_fork.c standard
-compat/linux/linux_futex.c standard
-compat/linux/linux_getcwd.c standard
-compat/linux/linux_ioctl.c standard
-compat/linux/linux_ipc.c standard
-compat/linux/linux_mib.c standard
-compat/linux/linux_misc.c standard
-compat/linux/linux_mmap.c standard
-compat/linux/linux_ptrace.c standard
-compat/linux/linux_rseq.c standard
-compat/linux/linux_mib.c standard
-compat/linux/linux_signal.c standard
-compat/linux/linux_socket.c standard
-compat/linux/linux_stats.c standard
-compat/linux/linux_sysctl.c standard
-compat/linux/linux_time.c standard
-compat/linux/linux_timer.c standard
-compat/linux/linux_util.c standard
-compat/linux/linux_vdso.c standard
-compat/linux/linux.c standard
