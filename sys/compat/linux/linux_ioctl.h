@@ -332,11 +332,11 @@
 /*
  * termio
  */
-#ifndef LINUX_TCGETS
+#ifndef __powerpc64__
 #define	LINUX_TCGETS		0x5401
 #endif
 #define	LINUX_TCSETS		0x5402
-#ifndef LINUX_TCSETSW
+#ifndef __powerpc64__
 #define	LINUX_TCSETSW		0x5403
 #endif
 #define	LINUX_TCSETSF		0x5404
@@ -352,7 +352,7 @@
 #define	LINUX_TIOCNXCL		0x540D
 #define	LINUX_TIOCSCTTY		0x540E
 
-#ifndef LINUX_TIOCGPGRP
+#ifndef __powerpc64__
 #define	LINUX_TIOCGPGRP		0x540F
 #define	LINUX_TIOCSPGRP		0x5410
 #endif
@@ -360,7 +360,7 @@
 #define	LINUX_TIOCOUTQ		0x5411
 #define	LINUX_TIOCSTI		0x5412
 
-#ifndef LINUX_TIOCGWINSZ
+#ifndef __powerpc64__
 #define	LINUX_TIOCGWINSZ	0x5413
 #define	LINUX_TIOCSWINSZ	0x5414
 #endif
@@ -408,7 +408,7 @@
 #define	LINUX_TIOCSLCKTRMIOS	0x5457
 
 #define	LINUX_IOCTL_TERMIO_MIN	LINUX_TCSETS
-#ifndef LINUX_IOCTL_TERMIO_MAX	
+#ifndef __powerpc64__
 #define	LINUX_IOCTL_TERMIO_MAX	LINUX_TIOCSLCKTRMIOS
 #endif
 
@@ -430,7 +430,7 @@
 #define	LINUX_N_PPP		3
 
 /* Linux termio c_cc values */
-#ifndef LINUX_CFLAGS
+#ifndef __powerpc64__
 #define	LINUX_VINTR		0
 #define	LINUX_VQUIT		1
 #define	LINUX_VERASE		2

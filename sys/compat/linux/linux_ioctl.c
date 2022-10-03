@@ -686,7 +686,6 @@ linux_ioctl_termio(struct thread *td, struct linux_ioctl_args *args)
 	case LINUX_TCGETS:
 		error = fo_ioctl(fp, TIOCGETA, (caddr_t)&bios, td->td_ucred,
 		    td);
-		uprintf("LINUX_TCGETS");
 		if (error)
 			break;
 		bsd_to_linux_termios(&bios, &lios);
@@ -704,18 +703,11 @@ linux_ioctl_termio(struct thread *td, struct linux_ioctl_args *args)
 
 	case LINUX_TCSETSW:
 		error = copyin((void *)args->arg, &lios, sizeof(lios));
-		uprintf("LINUX_TCSETSW	");
-		uprintf("c_iflag:%x\n",lios.c_iflag);
-		uprintf("c_oflag:%x\n",lios.c_oflag);
-		uprintf("c_cflag:%x\n",lios.c_cflag);
-		uprintf("c_lflag:%x\n",lios.c_lflag);
-		uprintf("c_line:%x\n",(short)lios.c_line);
 		if (error)
 			break;
 		linux_to_bsd_termios(&lios, &bios);
 		error = (fo_ioctl(fp, TIOCSETAW, (caddr_t)&bios, td->td_ucred,
 		    td));
-		uprintf("error:%d",error);
 		break;
 
 	case LINUX_TCSETSF:
@@ -846,13 +838,11 @@ linux_ioctl_termio(struct thread *td, struct linux_ioctl_args *args)
 
 	case LINUX_TIOCGPGRP:
 		args->cmd = TIOCGPGRP;
-		uprintf("LINUX_TIOCGPGRP");
 		error = (sys_ioctl(td, (struct ioctl_args *)args));
 		break;
 
 	case LINUX_TIOCSPGRP:
 		args->cmd = TIOCSPGRP;
-		uprintf("LINUX_TIOCSPGRP");
 		error = (sys_ioctl(td, (struct ioctl_args *)args));
 		break;
 
@@ -862,12 +852,10 @@ linux_ioctl_termio(struct thread *td, struct linux_ioctl_args *args)
 	case LINUX_TIOCGWINSZ:
 		args->cmd = TIOCGWINSZ;
 		error = (sys_ioctl(td, (struct ioctl_args *)args));
-		uprintf("LINUX_TIOCGWINSZ");
 		break;
 
 	case LINUX_TIOCSWINSZ:
 		args->cmd = TIOCSWINSZ;
-		uprintf("LINUX_TIOCSWINSZ");
 		error = (sys_ioctl(td, (struct ioctl_args *)args));
 		break;
 
@@ -3686,7 +3674,6 @@ linux_ioctl(struct thread *td, struct linux_ioctl_args *args)
 	 *
 	 * For now just a linear scan.
 	 */
-	uprintf("linux_ioctl	");
 	for (i = 0; i < nitems(linux_ioctls); i++) {
 		handler = &linux_ioctls[i];
 		if (cmd >= handler->low && cmd <= handler->high) {

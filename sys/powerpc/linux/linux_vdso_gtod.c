@@ -1,9 +1,8 @@
 /*-
  * SPDX-License-Identifier: BSD-2-Clause-FreeBSD
  *
- * Copyright (C) 2018 Turing Robotic Industries Inc.
- * Copyright (C) 2020 Andrew Turner <andrew@FreeBSD.org>
- * Copyright (C) 2022 Dmitry Chagin <dchagin@FreeBSD.org>
+ * Copyright (c) 2012 Konstantin Belousov <kib@FreeBSD.org>
+ * Copyright (c) 2021 Dmitry Chagin <dchagin@FreeBSD.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -25,40 +24,68 @@
  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
- *
- * $FreeBSD$
  */
+
+
+#include <sys/cdefs.h>
+__FBSDID("$FreeBSD$");
+
+#include <sys/elf.h>
+#include <sys/errno.h>
+#include <sys/proc.h>
+#include <sys/types.h>
+#include <sys/time.h>
+#include <sys/stddef.h>
+#define	_KERNEL
+#include <sys/vdso.h>
+#undef	_KERNEL
+#include <stdbool.h>
+
+#include <machine/cpufunc.h>
+
+#include <powerpc/linux/linux.h>
+#include <powerpc/linux/linux_syscall.h>
+#include <compat/linux/linux_errno.h>
+#include <compat/linux/linux_timer.h>
+
+/* The kernel fixup this at vDSO install */
+uintptr_t *kern_timekeep_base = NULL;
+uint32_t kern_tsc_selector = 0;
+
+static int
+__vdso_clock_gettime_fallback(clockid_t clock_id, struct l_timespec *lts)
+{
+	return (0);
+}
+
+static int
+__vdso_gettimeofday_fallback(l_timeval *ltv, struct timezone *ltz)
+{
+	return (0);
+}
+
+static int
+__vdso_clock_getres_fallback(clockid_t clock_id, struct l_timespec *lts)
+{
+	return (0);
+}
 
 /*
- * powerpc64 Linux signal trampoline.
- 
+ * copied from lib/libc/powerpc64/sys/__vdso_gettc.c
  */
 
-#include <machine/asm.h>
+int
+__vdso_gettc(const struct vdso_timehands *th, u_int *tc)
+{
+	u_quad_t tb;
 
-#include <powerpc/linux/linux_syscall.h>
+	if (__predict_false(th->th_algo != VDSO_TH_ALGO_PPC_TB))
+		return (ENOSYS);
 
-	.data
+	__asm __volatile ("mftb %0" : "=r"(tb));
+	*tc = tb;
+	return (0);
+}
 
-	.globl linux_platform
-linux_platform:
-	.asciz "powerpc64"
 
-	.text
-
-ENTRY(linux_vdso_sigcode)
-	bctrl	/* call the handler */
-END(linux_vdso_sigcode)
-ENTRY(linux_vdso_rt_sigcode)
-	addi	%r1, %r1, 128         /* SIGNAL_FRAMESIZE */
-	li	%r0, 172                 /* __NR_rt_sigreturn */
-	sc
-	/*
-	 * If we get back to here, it means sigreturn failed.
-	 * As such, we are now stuck in the wrong context.
-	 * Exit immediately without touching the stack.
-	 */
-	li	%r0, 1 /* exit */
-	sc				/* exit(errno) */
-END(linux_vdso_rt_sigcode)
-
+#include <compat/linux/linux_vdso_gtod.inc>
