@@ -92,8 +92,10 @@ MODULE_VERSION(linux64elf, 1);
 static int linux_szsigcode;
 static vm_object_t linux_vdso_obj;
 static char *linux_vdso_mapping;
-extern char _binary_linux_vdso_so_o_start;
-extern char _binary_linux_vdso_so_o_end;
+//extern char _binary_linux_vdso_so_o_start;
+//extern char _binary_linux_vdso_so_o_end;
+extern char _binary_linux_locore_o_start;
+extern char _binary_linux_locore_o_end;
 static vm_offset_t linux_vdso_base;
 
 extern struct sysent linux_sysent[LINUX_SYS_MAXSYSCALL];
@@ -541,7 +543,6 @@ linux_rt_sendsig(sig_t catcher, ksiginfo_t *ksi, sigset_t *mask)
 	int onstack, sig, issiginfo;
 	unsigned long newsp;
 
-	printf("sendsig\n");
 	td = curthread;
 	p = td->td_proc;
 	PROC_LOCK_ASSERT(p, MA_OWNED);
@@ -585,14 +586,14 @@ linux_rt_sendsig(sig_t catcher, ksiginfo_t *ksi, sigset_t *mask)
 	l_frame->pinfo = &l_frame->info;
 	l_frame->puc = &l_frame->uc;
 
-	/* Create the l_ucontext */
+	///* Create the l_ucontext */
 	l_frame->uc.uc_flags = 0;
 	memcpy(&l_frame->uc.uc_stack, &uc_stack, sizeof(uc_stack));
 	l_frame->uc.uc_link = 0;
-	/* __unsafe_setup_sigcontext() */
+	///* __unsafe_setup_sigcontext() */
 	unsigned long softe = 0x1;
 	l_frame->uc.uc_mcontext.v_regs = 0;	
-	/* if CONFIG_VSX or CONFIG_PPC_FPU_REGS is defined, unsafe_copy_fpr_to_usr() must be called */
+	///* if CONFIG_VSX or CONFIG_PPC_FPU_REGS is defined, unsafe_copy_fpr_to_usr() must be called */
 	l_frame->uc.uc_mcontext.regs = (struct l_user_pt_regs*)&l_frame->uc.uc_mcontext.gp_regs;
 	memcpy(&l_frame->uc.uc_mcontext.gp_regs, &tf, GP_REGS_SIZE);
 	l_frame->uc.uc_mcontext.gp_regs[PT_SOFTE] = softe;
@@ -605,6 +606,7 @@ linux_rt_sendsig(sig_t catcher, ksiginfo_t *ksi, sigset_t *mask)
 	siginfo_to_lsiginfo(&ksi->ksi_info, &l_frame->info, sig);
 
 	/* Might need to make sure signal handler doesn't get spurious FP exceptions? */
+	//l_frame->tramp[0] = 0x4e800421;
 
 	/* Copy the sigframe out to the user's stack. */
 	if (copyout(frame, fp, sizeof(*fp)) != 0) {
@@ -619,6 +621,8 @@ linux_rt_sendsig(sig_t catcher, ksiginfo_t *ksi, sigset_t *mask)
 	/* Set up to return from userspace. */
 	tf->srr0 = (register_t)linux_vdso_sigcode;
 	printf("srr0:%lx\n",(unsigned long)linux_vdso_sigcode);
+	//tf->srr0 = (register_t)&fp->sf.tramp[0];
+	//printf("srr0:%lx\n",(unsigned long)&fp->sf.tramp[0]);
 
 	/* Allocate a dummy caller frame for the signal handler. */
 	newsp = (unsigned long)fp - LINUX__SIGNAL_FRAMESIZE;
@@ -655,8 +659,9 @@ struct sysentvec elf_linux_sysvec = {
 //	.sv_fixup	= linux_elf_fixup,
 	.sv_fixup	= __elfN(freebsd_fixup),
 	.sv_sendsig	= linux_rt_sendsig,
-	.sv_sigcode	= sigcode64,
-	.sv_szsigcode	= &szsigcode64,
+	//.sv_sigcode	= &_binary_linux_vdso_so_o_start,
+	.sv_sigcode	= NULL,
+	.sv_szsigcode	= &linux_szsigcode,
 	.sv_name	= "Linux ELF64",
 	.sv_coredump	= elf64_coredump,
 	.sv_elf_core_osabi = ELFOSABI_NONE,
@@ -676,8 +681,8 @@ struct sysentvec elf_linux_sysvec = {
 	.sv_setregs	= linux_exec_setregs_funcdesc,
 	.sv_fixlimit	= NULL,
 	.sv_maxssiz	= NULL,
-	.sv_flags	= SV_ABI_LINUX | SV_LP64 | SV_SIG_DISCIGN |
-	    SV_SIG_WAITNDQ | SV_TIMEKEEP,
+	.sv_flags	= SV_ABI_LINUX | SV_LP64 | SV_SHP | SV_SIG_DISCIGN |
+	    SV_SIG_WAITNDQ,
 	.sv_set_syscall_retval = linux_set_syscall_retval,
 	.sv_fetch_syscall_args = linux_fetch_syscall_args,
 	.sv_syscallnames = NULL,
@@ -699,40 +704,43 @@ linux_on_exec_vmspace(struct proc *p, struct image_params *imgp)
 {
 	int error;
 
+	printf("linux_vdso_obj:%lx\n",(unsigned long)linux_vdso_obj);
 	error = linux_map_vdso(p, linux_vdso_obj, linux_vdso_base,
 	    LINUX_VDSOPAGE_SIZE, imgp);
 	if (error == 0)
 		linux_on_exec(p, imgp);
-	return (error);
+	return (0);
 }
 
 /*
  * linux_vdso_install() and linux_exec_sysvec_init() must be called
  * after exec_sysvec_init() which is SI_SUB_EXEC (SI_ORDER_ANY).
  */
-static void
-linux_exec_sysvec_init(void *param)
-{
-	l_uintptr_t *ktimekeep_base;
-	struct sysentvec *sv;
-	ptrdiff_t tkoff;
+//static void
+//linux_exec_sysvec_init(void *param)
+//{
+	//l_uintptr_t *ktimekeep_base;
+	//struct sysentvec *sv;
+	//ptrdiff_t tkoff;
 
-	sv = param;
-	/* Fill timekeep_base */
-	exec_sysvec_init(sv);
+	//sv = param;
+	///* Fill timekeep_base */
+	//exec_sysvec_init(sv);
 
-	tkoff = kern_timekeep_base - linux_vdso_base;
-	ktimekeep_base = (l_uintptr_t *)(linux_vdso_mapping + tkoff);
-	*ktimekeep_base = sv->sv_timekeep_base;
-}
-SYSINIT(elf_linux_exec_sysvec_init, SI_SUB_EXEC + 1, SI_ORDER_ANY,
-    linux_exec_sysvec_init, &elf_linux_sysvec);
+	//tkoff = kern_timekeep_base - linux_vdso_base;
+	//ktimekeep_base = (l_uintptr_t *)(linux_vdso_mapping + tkoff);
+	//*ktimekeep_base = sv->sv_timekeep_base;
+//}
+//SYSINIT(elf_linux_exec_sysvec_init, SI_SUB_EXEC + 1, SI_ORDER_ANY,
+    //linux_exec_sysvec_init, &elf_linux_sysvec);
 
 static void
 linux_vdso_install(const void *param)
 {
-	char *vdso_start = &_binary_linux_vdso_so_o_start;
-	char *vdso_end = &_binary_linux_vdso_so_o_end;
+	//char *vdso_start = &_binary_linux_vdso_so_o_start;
+	//char *vdso_end = &_binary_linux_vdso_so_o_end;
+	char *vdso_start = &_binary_linux_locore_o_start;
+	char *vdso_end = &_binary_linux_locore_o_end;
 
 	linux_szsigcode = vdso_end - vdso_start;
 	MPASS(linux_szsigcode <= LINUX_VDSOPAGE_SIZE);
@@ -744,6 +752,7 @@ linux_vdso_install(const void *param)
 	linux_vdso_obj = __elfN(linux_shared_page_init)
 	    (&linux_vdso_mapping, LINUX_VDSOPAGE_SIZE);
 	bcopy(vdso_start, linux_vdso_mapping, linux_szsigcode);
+	printf("linux_vdso_mapping:%lx\n",(unsigned long)linux_vdso_mapping);
 
 	linux_vdso_reloc(linux_vdso_mapping, linux_vdso_base);
 }
