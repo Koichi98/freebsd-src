@@ -25,7 +25,7 @@ SRCS+=  opt_kstack_pages.h opt_nfs.h opt_hwpmc_hooks.h
 CLEANFILES=	linux_assym.h linux_genassym.o linux_locore.o \
 		genassym.o
 
-OBJS=	${VDSO}.so
+OBJS=	linux_vdso.so
 
 linux_assym.h: linux_genassym.o
 	sh ${SYSDIR}/kern/genassym.sh linux_genassym.o > ${.TARGET}
@@ -39,26 +39,26 @@ VDSODEPS=linux_vdso_gettc_x86.inc
 VDSOFLAGS=-mgeneral-regs-only -mcmodel=small -ffixed-x18
 .endif
 
-linux_locore.o: linux_locore.asm linux_assym.h
-	${CC} ${CCLDFLAGS} -x assembler-with-cpp -DLOCORE -shared -mcmodel=small	\
-	-pipe -I. -I${SYSDIR} ${WERROR} -Wall -fno-common -fPIC -nostdinc	\
-	-Wl,-T${SRCTOP}/sys/${MACHINE}/linux/${VDSO}.lds.s	\
-	-Wl,-soname=${VDSO}.so.1,-warn-common -nostdlib			\
-	    ${.IMPSRC} -o ${.TARGET}
+#linux_locore.o: linux_locore.asm linux_assym.h
+	#${CC} ${CCLDFLAGS} -x assembler-with-cpp -DLOCORE -shared -mcmodel=small	\
+	#-pipe -I. -I${SYSDIR} ${WERROR} -Wall -fno-common -fPIC -nostdinc	\
+	#-Wl,-T${SRCTOP}/sys/${MACHINE}/linux/linux_vdso.lds.s	\
+	#-Wl,-soname=linux_vdso.so.1,-warn-common -nostdlib			\
+	    #${.IMPSRC} -o ${.TARGET}
 
-linux_vdso_gtod.o: linux_vdso_gtod.inc ${VDSODEPS}
-	${CC} -c -fPIC -pipe -O2 -Werror ${VDSOFLAGS} \
-	-nostdinc -fasynchronous-unwind-tables \
-	-fno-omit-frame-pointer -foptimize-sibling-calls \
-	-fno-stack-protector -I. -I${SYSDIR} -I${SRCTOP}/include \
-	    ${.IMPSRC} -o ${.TARGET}
+#linux_vdso_gtod.o: linux_vdso_gtod.inc ${VDSODEPS}
+	#${CC} -c -fPIC -pipe -O2 -Werror ${VDSOFLAGS} \
+	#-nostdinc -fasynchronous-unwind-tables \
+	#-fno-omit-frame-pointer -g -foptimize-sibling-calls \
+	#-fno-stack-protector -I. -I${SYSDIR} -I${SRCTOP}/include \
+	    #${.IMPSRC} -o ${.TARGET}
 
-linux_vdso.so.o: linux_locore.o linux_vdso_gtod.o
-	${LD} --shared --eh-frame-hdr -soname=linux-vdso.so.1 \
-	--no-undefined --hash-style=both -warn-common -nostdlib \
-	--strip-debug -s --build-id=sha1 -Bsymbolic \
-	-T${SRCTOP}/sys/${MACHINE}/linux/linux_vdso.lds.s \
-	-o ${.TARGET} ${.ALLSRC:M*.o}
+#linux_vdso.so.o: linux_locore.o linux_vdso_gtod.o
+	#${LD} --shared --eh-frame-hdr -soname=linux-vdso.so.1 \
+	#--no-undefined --hash-style=both -warn-common -nostdlib \
+	#--strip-debug -s --build-id=sha1 -Bsymbolic \
+	#-T${SRCTOP}/sys/${MACHINE}/linux/linux_vdso.lds.s \
+	#-o ${.TARGET} ${.ALLSRC:M*.o}
 
 .if ${MACHINE_CPUARCH} == "aarch64"
 OBJCOPY_TARGET=--output-target elf64-littleaarch64 --binary-architecture aarch64
@@ -70,10 +70,22 @@ OBJCOPY_TARGET=--output-target elf64-powerpc
 .error ${MACHINE_CPUARCH} not yet supported by linux64
 .endif
 
-linux_vdso.so: linux_vdso.so.o
+linux_locore.o: linux_locore.asm linux_assym.h
+	${CC} ${CCLDFLAGS} -x assembler-with-cpp -DLOCORE -shared -mcmodel=small	\
+	-pipe -I. -I${SYSDIR} ${WERROR} -Wall -fno-common -fPIC -nostdinc	\
+	-Wl,-T${SRCTOP}/sys/${MACHINE}/linux/${VDSO}.lds.s	\
+	-Wl,-soname=${VDSO}.so.1,-warn-common -nostdlib			\
+	    ${.IMPSRC} -o ${.TARGET}
+
+linux_vdso.so: linux_locore.o
 	${OBJCOPY} --input-target binary ${OBJCOPY_TARGET} \
-	    linux_vdso.so.o ${.TARGET}
-	${STRIPBIN} -N _binary_linux_vdso_so_o_size ${.TARGET}
+	    linux_locore.o ${.TARGET}
+	${STRIPBIN} -N _binary_linux_locore_o_size ${.TARGET}
+
+#linux_vdso.so: linux_vdso.so.o
+	#${OBJCOPY} --input-target binary ${OBJCOPY_TARGET} \
+	    #linux_vdso.so.o ${.TARGET}
+	#${STRIPBIN} -N _binary_linux_vdso_so_o_size ${.TARGET}
 
 linux_support.o: assym.inc linux_assym.h
 	${CC} -c -x assembler-with-cpp -DLOCORE ${CFLAGS} \

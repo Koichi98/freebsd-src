@@ -50,8 +50,8 @@ ENTRY(linux_vdso_sigcode)
 	bctrl	/* call the handler */
 END(linux_vdso_sigcode)
 ENTRY(linux_vdso_rt_sigcode)
-	addi	r1, r1, 128         /* SIGNAL_FRAMESIZE */
-	li	r0, 172                 /* __NR_rt_sigreturn */
+	addi	%r1, %r1, 128         /* SIGNAL_FRAMESIZE */
+	li	%r0, 172                 /* __NR_rt_sigreturn */
 	sc
 END(linux_vdso_rt_sigcode)
 
