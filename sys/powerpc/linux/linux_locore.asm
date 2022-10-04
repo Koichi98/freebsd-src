@@ -48,17 +48,15 @@ linux_platform:
 
 ENTRY(linux_vdso_sigcode)
 	bctrl	/* call the handler */
-END(linux_vdso_sigcode)
-ENTRY(linux_vdso_rt_sigcode)
-	addi	%r1, %r1, 128         /* SIGNAL_FRAMESIZE */
-	li	%r0, 172                 /* __NR_rt_sigreturn */
+	addi	1,1,128         /* SIGNAL_FRAMESIZE */
+	li	0, 172                 /* __NR_rt_sigreturn */
 	sc
 	/*
 	 * If we get back to here, it means sigreturn failed.
 	 * As such, we are now stuck in the wrong context.
 	 * Exit immediately without touching the stack.
 	 */
-	li	%r0, 1 /* exit */
+	li	0,1 /* exit */
 	sc				/* exit(errno) */
-END(linux_vdso_rt_sigcode)
+END(linux_vdso_sigcode)
 
