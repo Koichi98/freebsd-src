@@ -514,7 +514,7 @@ void linux_dump_signal_frame(int *l_rt_sigframe){
         if(i%2==1){
             printf(" ");
         }
-        if(i%8==7){
+        if(i%16==15){
             printf("\n");
         }
     }
@@ -525,8 +525,27 @@ void linux_dump_signal_frame(int *l_rt_sigframe){
 int
 linux_rt_sigreturn(struct thread *td, struct linux_rt_sigreturn_args *args)
 {
+	struct l_sigframe *frame;
+	ucontext_t uc;
+	struct trapframe *tf;
+	int error;
+
 	printf("linux_rt_sigreturn called\n");
-	return 0;
+	tf = td->td_frame;
+	frame = (struct l_sigframe *)tf->fixreg[1];
+	printf("frame:%lx\n",(unsigned long)frame);
+
+	if (copyin((void *)&frame->f_uc, &uc, sizeof(uc)))
+		return (EFAULT);
+
+	error = set_mcontext(td, &uc.uc_mcontext);
+	if (error != 0)
+		return (error);
+
+	/* Restore signal mask. */
+	kern_sigprocmask(td, SIG_SETMASK, &uc.uc_sigmask, NULL, 0);
+
+	return (EJUSTRETURN);
 }
 
 static void
@@ -625,6 +644,7 @@ linux_rt_sendsig(sig_t catcher, ksiginfo_t *ksi, sigset_t *mask)
 	//printf("srr0:%lx\n",(unsigned long)&fp->sf.tramp[0]);
 
 	/* Allocate a dummy caller frame for the signal handler. */
+	printf("fp:%lx\n",(unsigned long)fp);
 	newsp = (unsigned long)fp - LINUX__SIGNAL_FRAMESIZE;
 
 	/* For ELFv1 */
