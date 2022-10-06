@@ -130,8 +130,6 @@ LINUX_VDSO_SYM_INTPTR(kern_timekeep_base);
 static int
 linux_fetch_syscall_args(struct thread *td)
 {
-	//uprintf(__func__);
-	//uprintf("\n");
 	struct proc *p;
 	struct syscall_args *sa;
 	struct trapframe *frame;
@@ -149,7 +147,6 @@ linux_fetch_syscall_args(struct thread *td)
 	sa->args[5] = frame->fixreg[LINUX_FIRSTARG+5];
 
 	sa->code = frame->fixreg[0];
-	//uprintf("sa->code:%d\n",sa->code);
 	sa->original_code = sa->code;
 
 	// What to do with cr registers?
@@ -168,10 +165,6 @@ linux_fetch_syscall_args(struct thread *td)
 static void
 linux_set_syscall_retval(struct thread *td, int error)
 {
-
-	//uprintf(__func__);
-	//uprintf("\n");
-	// Refer from cpu_set_syscall_retval():/sys/powerpc/powerpc/exec_machdep.c
 	struct trapframe *tf;
 	int fixup;
 
@@ -204,8 +197,6 @@ linux_set_syscall_retval(struct thread *td, int error)
 static int
 linux_copyout_auxargs(struct image_params *imgp, uintptr_t base)
 {
-	uprintf(__func__);
-	uprintf("\n");
 	Elf_Auxargs *args;
 	Elf_Auxinfo *argarray, *pos;
 	struct proc *p;
@@ -279,8 +270,6 @@ linux_elf_fixup(uintptr_t *stack_base, struct image_params *imgp)
 static int
 linux_copyout_strings(struct image_params *imgp, uintptr_t *stack_base)
 {
-	uprintf(__func__);
-	uprintf("\n");
 	char **vectp;
 	char *stringp;
 	uintptr_t destp, ustringp;
@@ -291,7 +280,6 @@ linux_copyout_strings(struct image_params *imgp, uintptr_t *stack_base)
 	int argc, envc, error;
 
 	p = imgp->proc;
-	printf("stacktop:%lx\n",p->p_vmspace->vm_stacktop);
 	arginfo = (struct ps_strings *)PROC_PS_STRINGS(p);
 	destp = (uintptr_t)arginfo;
 
@@ -359,10 +347,6 @@ linux_copyout_strings(struct image_params *imgp, uintptr_t *stack_base)
 	    suword(&arginfo->ps_nargvstr, argc) != 0)
 		return (EFAULT);
 
-	////  Do we really need this? (amd64 doesn't have this. <- Done in linux_fixup_elf)
-	//if (suword(vectp++, argc) != 0)
-		//return (EFAULT);
-
 	/* Fill in argument portion of vector table. */
 	for (; argc > 0; --argc) {
 		if (suword(vectp++, ustringp) != 0)
@@ -420,8 +404,8 @@ cleanup_power_extras(struct thread *td)
 	if (pcb_flags & PCB_CDSCR) 
 		mtspr(SPR_DSCRP, 0);
 
-	//if (pcb_flags & PCB_FPU)
-		//cleanup_fpscr();
+	/*if (pcb_flags & PCB_FPU)
+		cleanup_fpscr(); */
 }
 
 
@@ -458,19 +442,12 @@ static void
 linux_exec_setregs(struct thread *td, struct image_params *imgp,
     uintptr_t stack)
 {
-	uprintf(__func__);
-	uprintf("\n");
 	struct trapframe	*tf;
 	register_t		argc;
 
 	tf = trapframe(td);
 	bzero(tf, sizeof *tf);
-	#ifdef __powerpc64__
-	//tf->fixreg[1] = -roundup(-stack + 48, 16);
 	tf->fixreg[1] = stack;
-	#else
-	tf->fixreg[1] = -roundup(-stack + 8, 16);
-	#endif
 
 	/*
 	 * Set up arguments for _start():
@@ -499,7 +476,6 @@ linux_exec_setregs(struct thread *td, struct image_params *imgp,
 	tf->fixreg[12] = imgp->entry_addr;
 	#endif
 	tf->srr1 = psl_userset | PSL_FE_DFLT;
-	// TODO
 	cleanup_power_extras(td);
 	td->td_pcb->pcb_flags = 0;
 
@@ -530,10 +506,8 @@ linux_rt_sigreturn(struct thread *td, struct linux_rt_sigreturn_args *args)
 	struct trapframe *tf;
 	int error;
 
-	printf("linux_rt_sigreturn called\n");
 	tf = td->td_frame;
 	frame = (struct l_sigframe *)tf->fixreg[1];
-	printf("frame:%lx\n",(unsigned long)frame);
 
 	if (copyin((void *)&frame->f_uc, &uc, sizeof(uc)))
 		return (EFAULT);
@@ -625,7 +599,6 @@ linux_rt_sendsig(sig_t catcher, ksiginfo_t *ksi, sigset_t *mask)
 	siginfo_to_lsiginfo(&ksi->ksi_info, &l_frame->info, sig);
 
 	/* Might need to make sure signal handler doesn't get spurious FP exceptions? */
-	//l_frame->tramp[0] = 0x4e800421;
 
 	/* Copy the sigframe out to the user's stack. */
 	if (copyout(frame, fp, sizeof(*fp)) != 0) {
@@ -639,12 +612,8 @@ linux_rt_sendsig(sig_t catcher, ksiginfo_t *ksi, sigset_t *mask)
 
 	/* Set up to return from userspace. */
 	tf->srr0 = (register_t)linux_vdso_sigcode;
-	printf("srr0:%lx\n",(unsigned long)linux_vdso_sigcode);
-	//tf->srr0 = (register_t)&fp->sf.tramp[0];
-	//printf("srr0:%lx\n",(unsigned long)&fp->sf.tramp[0]);
 
 	/* Allocate a dummy caller frame for the signal handler. */
-	printf("fp:%lx\n",(unsigned long)fp);
 	newsp = (unsigned long)fp - LINUX__SIGNAL_FRAMESIZE;
 
 	/* For ELFv1 */
@@ -654,10 +623,8 @@ linux_rt_sendsig(sig_t catcher, ksiginfo_t *ksi, sigset_t *mask)
 	* entry is the TOC value we need to use.
 	*/
 	struct l_func_desc *ptr = (struct l_func_desc*)catcher;
-	printf("ptr->addr:%lx\n",ptr->addr);
 	tf->ctr = (register_t)ptr->addr;
-	printf("ptr->toc:%lx\n",ptr->toc);
-	//tf->fixreg[2] = (register_t)ptr->toc;
+	tf->fixreg[2] = (register_t)ptr->toc;
 
 	tf->fixreg[1] = (register_t)newsp;
 	tf->fixreg[3] = (register_t)sig;
@@ -672,7 +639,6 @@ linux_rt_sendsig(sig_t catcher, ksiginfo_t *ksi, sigset_t *mask)
 
 	PROC_LOCK(p);
 	mtx_lock(&psp->ps_mtx);
-	printf("sendsig end\n");
 }
 
 struct sysentvec elf_linux_sysvec = {
@@ -726,7 +692,6 @@ linux_on_exec_vmspace(struct proc *p, struct image_params *imgp)
 {
 	int error;
 
-	printf("linux_vdso_obj:%lx\n",(unsigned long)linux_vdso_obj);
 	error = linux_map_vdso(p, linux_vdso_obj, linux_vdso_base,
 	    LINUX_VDSOPAGE_SIZE, imgp);
 	if (error == 0)
@@ -774,7 +739,6 @@ linux_vdso_install(const void *param)
 	linux_vdso_obj = __elfN(linux_shared_page_init)
 	    (&linux_vdso_mapping, LINUX_VDSOPAGE_SIZE);
 	bcopy(vdso_start, linux_vdso_mapping, linux_szsigcode);
-	printf("linux_vdso_mapping:%lx\n",(unsigned long)linux_vdso_mapping);
 
 	linux_vdso_reloc(linux_vdso_mapping, linux_vdso_base);
 }
@@ -847,8 +811,6 @@ static int GNU_ABI_LINUX = 0;
 static bool
 linux_trans_osrel(const Elf_Note *note, int32_t *osrel)
 {
-	uprintf(__func__);
-	uprintf("\n");
 	const Elf32_Word *desc;
 	uintptr_t p;
 
@@ -898,8 +860,6 @@ Elf64_Brandinfo *linux_brandlist[] = {
 static int
 linux64_elf_modevent(module_t mod, int type, void *data)
 {
-	uprintf(__func__);
-	uprintf("\n");
 	Elf64_Brandinfo **brandinfo;
 	struct linux_ioctl_handler**lihp;
 	int error;

@@ -615,7 +615,15 @@
 		    l_gid_t gid
 		);
 	}
-140	AUE_NULL	UNIMPL	linux__llseek
+140	AUE_LSEEK	STD {
+		int linux_llseek(
+		    l_int fd,
+		    l_ulong ohigh,
+		    l_ulong olow,
+		    l_loff_t *res,
+		    l_uint whence
+		);
+	}
 141	AUE_GETDIRENTRIES	STD  {
 		int linux_getdents(
 		    l_uint fd,
@@ -1189,8 +1197,20 @@
 		    struct l_timeval *tptr
 		);
 	}
-252	AUE_NULL	UNIMPL	linux_statfs64
-253	AUE_NULL	UNIMPL	linux_fstatfs64
+252	AUE_STATFS	STD {
+		int linux_statfs64(
+		    char *path,
+		    size_t bufsize,
+		    struct l_statfs64_buf *buf
+		);
+	}
+253	AUE_FSTATFS	STD {
+		int linux_fstatfs64(
+		    l_uint fd,
+		    size_t bufsize,
+		    struct l_statfs64_buf *buf
+		);
+	}
 254	AUE_NULL	UNIMPL	linux_fadvise64_64
 255	AUE_NULL	UNIMPL	linux_rtas
 256	AUE_NULL	UNIMPL	linux_sys_debug_setcontext
