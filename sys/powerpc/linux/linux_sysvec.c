@@ -166,32 +166,30 @@ static void
 linux_set_syscall_retval(struct thread *td, int error)
 {
 	struct trapframe *tf;
-	int fixup;
 
 	if (error == EJUSTRETURN)
 		return;
 
 	tf = td->td_frame;
 
-	fixup = 0;
-
-	if (fixup) {
-		/*
-			* 64-bit return, 32-bit syscall. Fixup byte order
-			*/
-		tf->fixreg[LINUX_FIRSTARG] = 0;
-		tf->fixreg[LINUX_FIRSTARG + 1] = td->td_retval[0];
-	} else {
+	if(error == 0){
 		tf->fixreg[LINUX_FIRSTARG] = td->td_retval[0];
 		tf->fixreg[LINUX_FIRSTARG + 1] = td->td_retval[1];
+	}else if(error == ERESTART){
+		///*
+		 //* Set user's pc back to redo the system call.
+		 //*/
+		tf->srr0 -= 4;
+	}else{
+		tf->fixreg[FIRSTARG] = error;
+		tf->cr |= 0x10000000;		/* Set summary overflow */
 	}
-	//cpu_set_syscall_retval(td, error);
 
 	if (__predict_false(error != 0)) {
-		// Not sure why only for ERESTART and EJUSTRETURN
 		if (error != ERESTART && error != EJUSTRETURN)
 			td->td_frame->fixreg[FIRSTARG] = bsd_to_linux_errno(error);
 	}
+
 }
 
 static int
