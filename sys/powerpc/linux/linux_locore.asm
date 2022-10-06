@@ -41,12 +41,13 @@
 	.data
 
 	.globl linux_platform
+	.globl	CNAME(linux_vdso_sigcode)
 linux_platform:
 	.asciz "powerpc64"
 
 	.text
 
-ENTRY(linux_vdso_sigcode)
+CNAME(linux_vdso_sigcode):
 	bctrl	/* call the handler */
 	addi	1,1,128         /* SIGNAL_FRAMESIZE */
 	li	0, 172                 /* __NR_rt_sigreturn */
@@ -58,5 +59,4 @@ ENTRY(linux_vdso_sigcode)
 	 */
 	li	0,1 /* exit */
 	sc				/* exit(errno) */
-END(linux_vdso_sigcode)
 

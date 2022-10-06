@@ -369,7 +369,7 @@ linux_lseek(struct thread *td, struct linux_lseek_args *args)
 	return (kern_lseek(td, args->fdes, args->off, args->whence));
 }
 
-#if defined(__i386__) || (defined(__amd64__) && defined(COMPAT_LINUX32))
+#if defined(__powerpc64__) || defined(__i386__) || (defined(__amd64__) && defined(COMPAT_LINUX32))
 int
 linux_llseek(struct thread *td, struct linux_llseek_args *args)
 {
@@ -389,7 +389,7 @@ linux_llseek(struct thread *td, struct linux_llseek_args *args)
 	td->td_retval[0] = 0;
 	return (0);
 }
-#endif /* __i386__ || (__amd64__ && COMPAT_LINUX32) */
+#endif /* __powerpc64__ || __i386__ || (__amd64__ && COMPAT_LINUX32) */
 
 /*
  * Note that linux_getdents(2) and linux_getdents64(2) have the same

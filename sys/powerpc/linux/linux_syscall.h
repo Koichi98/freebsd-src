@@ -107,6 +107,7 @@
 #define	LINUX_SYS_linux_personality	136
 #define	LINUX_SYS_linux_setfsuid	138
 #define	LINUX_SYS_linux_setfsgid	139
+#define	LINUX_SYS_linux_llseek	140
 #define	LINUX_SYS_linux_getdents	141
 #define	LINUX_SYS_flock	143
 #define	LINUX_SYS_linux_msync	144
@@ -192,6 +193,8 @@
 #define	LINUX_SYS_linux_clock_nanosleep	248
 #define	LINUX_SYS_linux_tgkill	250
 #define	LINUX_SYS_linux_utimes	251
+#define	LINUX_SYS_linux_statfs64	252
+#define	LINUX_SYS_linux_fstatfs64	253
 #define	LINUX_SYS_linux_migrate_pages	258
 #define	LINUX_SYS_linux_mbind	259
 #define	LINUX_SYS_linux_get_mempolicy	260

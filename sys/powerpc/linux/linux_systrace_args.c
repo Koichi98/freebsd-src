@@ -780,6 +780,17 @@ systrace_args(int sysnum, void *params, uint64_t *uarg, int *n_args)
 		*n_args = 1;
 		break;
 	}
+	/* linux_llseek */
+	case 140: {
+		struct linux_llseek_args *p = params;
+		iarg[a++] = p->fd; /* l_int */
+		iarg[a++] = p->ohigh; /* l_ulong */
+		iarg[a++] = p->olow; /* l_ulong */
+		uarg[a++] = (intptr_t)p->res; /* l_loff_t * */
+		iarg[a++] = p->whence; /* l_uint */
+		*n_args = 5;
+		break;
+	}
 	/* linux_getdents */
 	case 141: {
 		struct linux_getdents_args *p = params;
@@ -1495,6 +1506,24 @@ systrace_args(int sysnum, void *params, uint64_t *uarg, int *n_args)
 		uarg[a++] = (intptr_t)p->fname; /* char * */
 		uarg[a++] = (intptr_t)p->tptr; /* struct l_timeval * */
 		*n_args = 2;
+		break;
+	}
+	/* linux_statfs64 */
+	case 252: {
+		struct linux_statfs64_args *p = params;
+		uarg[a++] = (intptr_t)p->path; /* char * */
+		uarg[a++] = p->bufsize; /* size_t */
+		uarg[a++] = (intptr_t)p->buf; /* struct l_statfs64_buf * */
+		*n_args = 3;
+		break;
+	}
+	/* linux_fstatfs64 */
+	case 253: {
+		struct linux_fstatfs64_args *p = params;
+		iarg[a++] = p->fd; /* l_uint */
+		uarg[a++] = p->bufsize; /* size_t */
+		uarg[a++] = (intptr_t)p->buf; /* struct l_statfs64_buf * */
+		*n_args = 3;
 		break;
 	}
 	/* linux_migrate_pages */
@@ -3840,6 +3869,28 @@ systrace_entry_setargdesc(int sysnum, int ndx, char *desc, size_t descsz)
 			break;
 		};
 		break;
+	/* linux_llseek */
+	case 140:
+		switch (ndx) {
+		case 0:
+			p = "l_int";
+			break;
+		case 1:
+			p = "l_ulong";
+			break;
+		case 2:
+			p = "l_ulong";
+			break;
+		case 3:
+			p = "userland l_loff_t *";
+			break;
+		case 4:
+			p = "l_uint";
+			break;
+		default:
+			break;
+		};
+		break;
 	/* linux_getdents */
 	case 141:
 		switch (ndx) {
@@ -5043,6 +5094,38 @@ systrace_entry_setargdesc(int sysnum, int ndx, char *desc, size_t descsz)
 			break;
 		case 1:
 			p = "userland struct l_timeval *";
+			break;
+		default:
+			break;
+		};
+		break;
+	/* linux_statfs64 */
+	case 252:
+		switch (ndx) {
+		case 0:
+			p = "userland char *";
+			break;
+		case 1:
+			p = "size_t";
+			break;
+		case 2:
+			p = "userland struct l_statfs64_buf *";
+			break;
+		default:
+			break;
+		};
+		break;
+	/* linux_fstatfs64 */
+	case 253:
+		switch (ndx) {
+		case 0:
+			p = "l_uint";
+			break;
+		case 1:
+			p = "size_t";
+			break;
+		case 2:
+			p = "userland struct l_statfs64_buf *";
 			break;
 		default:
 			break;
@@ -7452,6 +7535,11 @@ systrace_return_setargdesc(int sysnum, int ndx, char *desc, size_t descsz)
 		if (ndx == 0 || ndx == 1)
 			p = "int";
 		break;
+	/* linux_llseek */
+	case 140:
+		if (ndx == 0 || ndx == 1)
+			p = "int";
+		break;
 	/* linux_getdents */
 	case 141:
 		if (ndx == 0 || ndx == 1)
@@ -7850,6 +7938,16 @@ systrace_return_setargdesc(int sysnum, int ndx, char *desc, size_t descsz)
 		break;
 	/* linux_utimes */
 	case 251:
+		if (ndx == 0 || ndx == 1)
+			p = "int";
+		break;
+	/* linux_statfs64 */
+	case 252:
+		if (ndx == 0 || ndx == 1)
+			p = "int";
+		break;
+	/* linux_fstatfs64 */
+	case 253:
 		if (ndx == 0 || ndx == 1)
 			p = "int";
 		break;

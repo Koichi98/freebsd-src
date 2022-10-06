@@ -157,7 +157,7 @@ struct sysent linux_sysent[] = {
 	{ .sy_narg = 0, .sy_call = (sy_call_t *)nosys, .sy_auevent = AUE_NULL, .sy_flags = 0, .sy_thrcnt = SY_THR_ABSENT },			/* 137 = linux_afs_syscall */
 	{ .sy_narg = AS(linux_setfsuid_args), .sy_call = (sy_call_t *)linux_setfsuid, .sy_auevent = AUE_SETFSUID, .sy_flags = 0, .sy_thrcnt = SY_THR_STATIC },	/* 138 = linux_setfsuid */
 	{ .sy_narg = AS(linux_setfsgid_args), .sy_call = (sy_call_t *)linux_setfsgid, .sy_auevent = AUE_SETFSGID, .sy_flags = 0, .sy_thrcnt = SY_THR_STATIC },	/* 139 = linux_setfsgid */
-	{ .sy_narg = 0, .sy_call = (sy_call_t *)nosys, .sy_auevent = AUE_NULL, .sy_flags = 0, .sy_thrcnt = SY_THR_ABSENT },			/* 140 = linux__llseek */
+	{ .sy_narg = AS(linux_llseek_args), .sy_call = (sy_call_t *)linux_llseek, .sy_auevent = AUE_LSEEK, .sy_flags = 0, .sy_thrcnt = SY_THR_STATIC },	/* 140 = linux_llseek */
 	{ .sy_narg = AS(linux_getdents_args), .sy_call = (sy_call_t *)linux_getdents, .sy_auevent = AUE_GETDIRENTRIES, .sy_flags = 0, .sy_thrcnt = SY_THR_STATIC },	/* 141 = linux_getdents */
 	{ .sy_narg = 0, .sy_call = (sy_call_t *)nosys, .sy_auevent = AUE_NULL, .sy_flags = 0, .sy_thrcnt = SY_THR_ABSENT },			/* 142 = linux__newselect */
 	{ .sy_narg = AS(flock_args), .sy_call = (sy_call_t *)sys_flock, .sy_auevent = AUE_FLOCK, .sy_flags = 0, .sy_thrcnt = SY_THR_STATIC },	/* 143 = flock */
@@ -269,8 +269,8 @@ struct sysent linux_sysent[] = {
 	{ .sy_narg = 0, .sy_call = (sy_call_t *)nosys, .sy_auevent = AUE_NULL, .sy_flags = 0, .sy_thrcnt = SY_THR_ABSENT },			/* 249 = linux_swapcontext */
 	{ .sy_narg = AS(linux_tgkill_args), .sy_call = (sy_call_t *)linux_tgkill, .sy_auevent = AUE_NULL, .sy_flags = 0, .sy_thrcnt = SY_THR_STATIC },	/* 250 = linux_tgkill */
 	{ .sy_narg = AS(linux_utimes_args), .sy_call = (sy_call_t *)linux_utimes, .sy_auevent = AUE_UTIMES, .sy_flags = 0, .sy_thrcnt = SY_THR_STATIC },	/* 251 = linux_utimes */
-	{ .sy_narg = 0, .sy_call = (sy_call_t *)nosys, .sy_auevent = AUE_NULL, .sy_flags = 0, .sy_thrcnt = SY_THR_ABSENT },			/* 252 = linux_statfs64 */
-	{ .sy_narg = 0, .sy_call = (sy_call_t *)nosys, .sy_auevent = AUE_NULL, .sy_flags = 0, .sy_thrcnt = SY_THR_ABSENT },			/* 253 = linux_fstatfs64 */
+	{ .sy_narg = AS(linux_statfs64_args), .sy_call = (sy_call_t *)linux_statfs64, .sy_auevent = AUE_STATFS, .sy_flags = 0, .sy_thrcnt = SY_THR_STATIC },	/* 252 = linux_statfs64 */
+	{ .sy_narg = AS(linux_fstatfs64_args), .sy_call = (sy_call_t *)linux_fstatfs64, .sy_auevent = AUE_FSTATFS, .sy_flags = 0, .sy_thrcnt = SY_THR_STATIC },	/* 253 = linux_fstatfs64 */
 	{ .sy_narg = 0, .sy_call = (sy_call_t *)nosys, .sy_auevent = AUE_NULL, .sy_flags = 0, .sy_thrcnt = SY_THR_ABSENT },			/* 254 = linux_fadvise64_64 */
 	{ .sy_narg = 0, .sy_call = (sy_call_t *)nosys, .sy_auevent = AUE_NULL, .sy_flags = 0, .sy_thrcnt = SY_THR_ABSENT },			/* 255 = linux_rtas */
 	{ .sy_narg = 0, .sy_call = (sy_call_t *)nosys, .sy_auevent = AUE_NULL, .sy_flags = 0, .sy_thrcnt = SY_THR_ABSENT },			/* 256 = linux_sys_debug_setcontext */

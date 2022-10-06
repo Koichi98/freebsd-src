@@ -468,7 +468,7 @@ linux_statfs(struct thread *td, struct linux_statfs_args *args)
 	return (copyout(&linux_statfs, args->buf, sizeof(linux_statfs)));
 }
 
-#if defined(__i386__) || (defined(__amd64__) && defined(COMPAT_LINUX32))
+#if defined(__powerpc64__) || defined(__i386__) || (defined(__amd64__) && defined(COMPAT_LINUX32))
 static void
 bsd_to_linux_statfs64(struct statfs *bsd_statfs, struct l_statfs64 *linux_statfs)
 {
@@ -535,7 +535,7 @@ linux_fstatfs64(struct thread *td, struct linux_fstatfs64_args *args)
 		return (error);
 	return (copyout(&linux_statfs, args->buf, sizeof(linux_statfs)));
 }
-#endif /* __i386__ || (__amd64__ && COMPAT_LINUX32) */
+#endif /* __powerpc64__ || __i386__ || (__amd64__ && COMPAT_LINUX32) */
 
 int
 linux_fstatfs(struct thread *td, struct linux_fstatfs_args *args)
